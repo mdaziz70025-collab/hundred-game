@@ -1,4 +1,4 @@
-import 'dart0:math';
+import 'dart:math';
 import 'game_models.dart';
 
 class HundredGameLogic {
@@ -19,7 +19,7 @@ class HundredGameLogic {
   String warningMsg = "";
   
   bool isFirstRound = true;
-  bool isDeckFinished = false; // Check agar saare cards khel liye gaye hain
+  bool isDeckFinished = false;
 
   HundredGameLogic({
     required this.mode,
@@ -40,14 +40,13 @@ class HundredGameLogic {
     dealNewDeck();
   }
 
-  // Agli baji ke liye naya deck shuffle aur deal karne ka function
   void dealNewDeck() {
     isDeckFinished = false;
     isFirstRound = true;
     currentRoundCards.clear();
     playedCardOwners.clear();
 
-    List<int> deck = List.generate(20, (i) => (i + 1) * 5); // [5, 10, 15 ... 100]
+    List<int> deck = List.generate(20, (i) => (i + 1) * 5);
 
     if (totalPlayers == 3) {
       deck.remove(5);
@@ -158,7 +157,6 @@ class HundredGameLogic {
     players[winnerIndex].currentScore += roundPoints;
     lastRoundWinnerMsg = "🎉 ${players[winnerIndex].name} won the baji (+${roundPoints} pts)!";
 
-    // Target Score check
     if (players[winnerIndex].currentScore >= targetScore) {
       winnerName = players[winnerIndex].name;
     }
@@ -168,10 +166,9 @@ class HundredGameLogic {
     currentRoundCards.clear();
     playedCardOwners.clear();
 
-    // Check agar saare players ke haath ke cards khatam ho gaye hain
     bool allHandsEmpty = players.every((p) => p.hand.isEmpty);
     if (allHandsEmpty && winnerName.isEmpty) {
-      isDeckFinished = true; // Agli baji/hand ke liye
+      isDeckFinished = true;
     } else if (mode == GameMode.offline) {
       isCardHiddenForPass = true;
     }
