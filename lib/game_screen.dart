@@ -529,10 +529,10 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                 ),
               ),
 
-            // CELEBRATION MATCH WINNER OVERLAY
+            // CELEBRATION MATCH WINNER OVERLAY (FIXED: Colors.black87)
             if (game.winnerName.isNotEmpty)
               Container(
-                color: Colors.black97,
+                color: Colors.black87,
                 width: double.infinity,
                 height: double.infinity,
                 child: Column(
