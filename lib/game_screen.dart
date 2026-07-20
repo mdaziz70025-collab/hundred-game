@@ -79,7 +79,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
           if (game.isCardHiddenForPass && !game.showFirstTurnDialog)
             Container(
-              color: Colors.black87
+              color: Colors.black87,
               width: double.infinity,
               height: double.infinity,
               child: Column(
