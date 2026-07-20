@@ -19,12 +19,15 @@ class GameScreen extends StatefulWidget {
   _GameScreenState createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateMixin {
   late HundredGameLogic game;
   
   bool isDealing = false;
   bool cardsDealt = false;
   int dealtCardsCount = 0;
+
+  late AnimationController _turnAnimationController;
+  late Animation<double> _turnScaleAnimation;
 
   @override
   void initState() {
@@ -35,6 +38,22 @@ class _GameScreenState extends State<GameScreen> {
       targetScore: widget.targetScore,
     );
     game.startMatch(widget.playerNames);
+
+    // Active Player Turn Hilne Walli Animation
+    _turnAnimationController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 600),
+    )..repeat(reverse: true);
+
+    _turnScaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _turnAnimationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _turnAnimationController.dispose();
+    super.dispose();
   }
 
   void _startDealingAnimation() async {
@@ -60,6 +79,7 @@ class _GameScreenState extends State<GameScreen> {
       setState(() {
         isDealing = false;
         cardsDealt = true;
+        game.revealFirstTurnDialog();
       });
     }
   }
@@ -83,6 +103,54 @@ class _GameScreenState extends State<GameScreen> {
         ],
       ),
     ) ?? false;
+  }
+
+  // PLAYER NAME WITH TURN ANIMATION WIDGET
+  Widget _buildPlayerLabel(Player player, int playerIndex, {bool isRotated = false, int quarterTurns = 0}) {
+    bool isCurrentTurn = cardsDealt && (game.currentPlayerIndex == playerIndex);
+
+    Widget textWidget = Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isCurrentTurn ? Colors.green.shade700 : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: isCurrentTurn ? Border.all(color: Colors.amberAccent, width: 2) : null,
+        boxShadow: isCurrentTurn
+            ? [BoxShadow(color: Colors.greenAccent.withOpacity(0.6), blurRadius: 8, spreadRadius: 2)]
+            : [],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isCurrentTurn) ...[
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: Colors.amber, shape: BoxShape.circle),
+            ),
+            SizedBox(width: 4),
+          ],
+          Text(
+            "${player.name} : ${player.currentScore} pts",
+            style: TextStyle(
+              color: isCurrentTurn ? Colors.white : Colors.amberAccent,
+              fontWeight: FontWeight.bold,
+              fontSize: isCurrentTurn ? 15 : 13,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (isRotated) {
+      textWidget = RotatedBox(quarterTurns: quarterTurns, child: textWidget);
+    }
+
+    if (isCurrentTurn) {
+      return ScaleTransition(scale: _turnScaleAnimation, child: textWidget);
+    }
+
+    return textWidget;
   }
 
   Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
@@ -189,10 +257,7 @@ class _GameScreenState extends State<GameScreen> {
                 if (game.players.length >= 3)
                   Column(
                     children: [
-                      Text(
-                        "${game.players[2].name} : ${game.players[2].currentScore} pts", 
-                        style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
+                      _buildPlayerLabel(game.players[2], 2),
                       SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -215,13 +280,7 @@ class _GameScreenState extends State<GameScreen> {
                         padding: const EdgeInsets.only(left: 6.0),
                         child: Column(
                           children: [
-                            RotatedBox(
-                              quarterTurns: 1,
-                              child: Text(
-                                "${game.players[3].name} : ${game.players[3].currentScore} pts", 
-                                style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                            ),
+                            _buildPlayerLabel(game.players[3], 3, isRotated: true, quarterTurns: 1),
                             SizedBox(height: 5),
                             Column(
                               children: cardsDealt 
@@ -296,13 +355,7 @@ class _GameScreenState extends State<GameScreen> {
                         padding: const EdgeInsets.only(right: 6.0),
                         child: Column(
                           children: [
-                            RotatedBox(
-                              quarterTurns: 3,
-                              child: Text(
-                                "${game.players[1].name} : ${game.players[1].currentScore} pts", 
-                                style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                            ),
+                            _buildPlayerLabel(game.players[1], 1, isRotated: true, quarterTurns: 3),
                             SizedBox(height: 5),
                             Column(
                               children: cardsDealt 
@@ -318,10 +371,7 @@ class _GameScreenState extends State<GameScreen> {
                 ),
 
                 SizedBox(height: 10),
-                Text(
-                  "${game.players[0].name} : ${game.players[0].currentScore} pts",
-                  style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 15),
-                ),
+                _buildPlayerLabel(game.players[0], 0),
 
                 Spacer(),
 
@@ -332,39 +382,38 @@ class _GameScreenState extends State<GameScreen> {
                     child: Text(game.warningMsg, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
 
-                // BOTTOM PLAYER HAND AREA
-                Container(
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Color(0xFF0F172A),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  child: Column(
-                    children: [
-                      Text("Turn: ${activePlayer.name}", 
-                          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 10),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: cardsDealt 
-                              ? activePlayer.hand.map((cardValue) {
-                                  return _buildPlayingCard(
-                                    value: cardValue,
-                                    onTap: () {
-                                      setState(() {
-                                        game.playCard(cardValue);
-                                      });
-                                    },
-                                  );
-                                }).toList()
-                              : [Text("Tap 'DEAL CARDS' on center table to start", style: TextStyle(color: Colors.white54, fontSize: 12))],
+                // BOTTOM PLAYER HAND AREA (CARDS BATNE KE BAAD HI SHOW HOGA)
+                if (cardsDealt)
+                  Container(
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF0F172A),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Column(
+                      children: [
+                        Text("Turn: ${activePlayer.name}", 
+                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 10),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: activePlayer.hand.map((cardValue) {
+                              return _buildPlayingCard(
+                                value: cardValue,
+                                onTap: () {
+                                  setState(() {
+                                    game.playCard(cardValue);
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
 
@@ -384,7 +433,7 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
 
-            // RE-DEAL / NEXT BAJI OVERLAY (Jab ek poori baji ke saare cards khatam ho jaate hain)
+            // RE-DEAL OVERLAY
             if (game.isDeckFinished && game.winnerName.isEmpty)
               Container(
                 color: Colors.black87,
@@ -415,7 +464,7 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
 
-            // PASS PHONE OVERLAY (Baji ke dauran turn badalne par)
+            // PASS PHONE OVERLAY
             if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt && !game.isDeckFinished)
               Container(
                 color: Colors.black87,
