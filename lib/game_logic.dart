@@ -138,14 +138,19 @@ class HundredGameLogic {
     }
   }
 
+  // FIXED WINNER EVALUATION LOGIC
   void evaluateRoundWinner() {
     int highestCard = -1;
-    int winnerIndex = -1;
+    int winningCardOwnerIndex = -1;
 
+    // Sabse bada card kiska tha, pehle correctly search karein
     for (int i = 0; i < currentRoundCards.length; i++) {
       if (currentRoundCards[i] > highestCard) {
         highestCard = currentRoundCards[i];
-        winnerIndex = i;
+        
+        // Match player name with played card owner
+        String ownerName = playedCardOwners[i];
+        winningCardOwnerIndex = players.indexWhere((p) => p.name == ownerName);
       }
     }
 
@@ -154,14 +159,18 @@ class HundredGameLogic {
       roundPoints += calculateCardPoints(card);
     }
 
-    players[winnerIndex].currentScore += roundPoints;
-    lastRoundWinnerMsg = "🎉 ${players[winnerIndex].name} won the baji (+${roundPoints} pts)!";
+    if (winningCardOwnerIndex != -1) {
+      players[winningCardOwnerIndex].currentScore += roundPoints;
+      lastRoundWinnerMsg = "🎉 ${players[winningCardOwnerIndex].name} won the baji (+${roundPoints} pts)!";
 
-    if (players[winnerIndex].currentScore >= targetScore) {
-      winnerName = players[winnerIndex].name;
+      if (players[winningCardOwnerIndex].currentScore >= targetScore) {
+        winnerName = players[winningCardOwnerIndex].name;
+      }
+
+      // Winner hi agli baji ka pehla card chalega
+      currentPlayerIndex = winningCardOwnerIndex;
     }
 
-    currentPlayerIndex = winnerIndex;
     isFirstRound = false;
     currentRoundCards.clear();
     playedCardOwners.clear();
