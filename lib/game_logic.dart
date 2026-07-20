@@ -16,6 +16,9 @@ class HundredGameLogic {
   bool showFirstTurnDialog = true;
   String lastRoundWinnerMsg = "";
   String winnerName = "";
+  String warningMsg = ""; // Error warning agar galat card chala
+  
+  bool isFirstRound = true;
 
   HundredGameLogic({
     required this.mode,
@@ -23,17 +26,14 @@ class HundredGameLogic {
     required this.targetScore,
   });
 
-  // GRAND TOTAL 100-POINT SCORING FORMULA:
-  // 5=0 | 10=1, 15=1 | 20=2, 25=2 ... 90=9, 95=9 | 100=10 (Total Sum = 100 Pts)
   int calculateCardPoints(int cardValue) {
     if (cardValue == 5) return 0;
     return cardValue ~/ 10;
   }
 
   void startMatch(List<String> playerNames) {
-    List<int> deck = List.generate(20, (i) => (i + 1) * 5); // [5, 10, 15 ... 100]
+    List<int> deck = List.generate(20, (i) => (i + 1) * 5); // [5, 10 ... 100]
 
-    // 3 Players Rule: 5 aur 10 remove ho jaate hain
     if (totalPlayers == 3) {
       deck.remove(5);
       deck.remove(10);
@@ -75,7 +75,30 @@ class HundredGameLogic {
   }
 
   void playCard(int cardValue) {
+    warningMsg = "";
     Player current = players[currentPlayerIndex];
+
+    // Rule 1: Pehle round me 5/15 compulsory
+    if (isFirstRound && current.hand.contains(5) && cardValue != 5) {
+      warningMsg = "Pehle 5 number card hi chalna hoga!";
+      return; 
+    }
+    if (isFirstRound && totalPlayers == 3 && current.hand.contains(15) && cardValue != 15) {
+      warningMsg = "Pehle 15 number card hi chalna hoga!";
+      return;
+    }
+
+    // RULE 1 NEW: Agar table par pehle se card hai, toh bada card chalna compulsory hai
+    if (currentRoundCards.isNotEmpty) {
+      int highestOnTable = currentRoundCards.reduce(max);
+      bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
+
+      if (hasHigherCard && cardValue < highestOnTable) {
+        warningMsg = "Aapke paas $highestOnTable se bada card hai, chhota nahi chal sakte!";
+        return;
+      }
+    }
+
     current.hand.remove(cardValue);
     currentRoundCards.add(cardValue);
     playedCardOwners.add(current.name);
@@ -85,8 +108,23 @@ class HundredGameLogic {
       if (mode == GameMode.offline) {
         isCardHiddenForPass = true;
       }
+      
+      // RULE 2 NEW: Auto-play last card if only 1 card left with everyone
+      checkAutoPlayLastCard();
     } else {
       evaluateRoundWinner();
+    }
+  }
+
+  // RULE 2 NEW: Auto-play last card system
+  void checkAutoPlayLastCard() {
+    bool allHaveOneCard = players.every((p) => p.hand.length == 1);
+    if (allHaveOneCard && currentRoundCards.length < totalPlayers) {
+      Player current = players[currentPlayerIndex];
+      if (current.hand.isNotEmpty) {
+        int autoCard = current.hand.first;
+        playCard(autoCard);
+      }
     }
   }
 
@@ -101,7 +139,6 @@ class HundredGameLogic {
       }
     }
 
-    // Pehle digit ke basis par scoring sum
     int roundPoints = 0;
     for (int card in currentRoundCards) {
       roundPoints += calculateCardPoints(card);
@@ -115,11 +152,15 @@ class HundredGameLogic {
     }
 
     currentPlayerIndex = winnerIndex;
+    isFirstRound = false;
     currentRoundCards.clear();
     playedCardOwners.clear();
     
     if (mode == GameMode.offline) {
       isCardHiddenForPass = true;
     }
+
+    // Next round check for auto play
+    checkAutoPlayLastCard();
   }
 }
