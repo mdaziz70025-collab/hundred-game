@@ -16,7 +16,7 @@ class HundredGameLogic {
   bool showFirstTurnDialog = true;
   String lastRoundWinnerMsg = "";
   String winnerName = "";
-  String warningMsg = ""; // Error warning agar galat card chala
+  String warningMsg = "";
   
   bool isFirstRound = true;
 
@@ -32,7 +32,7 @@ class HundredGameLogic {
   }
 
   void startMatch(List<String> playerNames) {
-    List<int> deck = List.generate(20, (i) => (i + 1) * 5); // [5, 10 ... 100]
+    List<int> deck = List.generate(20, (i) => (i + 1) * 5);
 
     if (totalPlayers == 3) {
       deck.remove(5);
@@ -70,7 +70,7 @@ class HundredGameLogic {
     }
 
     currentPlayerIndex = startingIndex;
-    firstTurnNotice = "${players[startingIndex].name} ke paas $lowestCard number card hai! Pehla turn inka hai.";
+    firstTurnNotice = "${players[startingIndex].name} ke paas $lowestCard number card hai! Pehla card $lowestCard hi chalna compulsory hai.";
     showFirstTurnDialog = true;
   }
 
@@ -78,17 +78,19 @@ class HundredGameLogic {
     warningMsg = "";
     Player current = players[currentPlayerIndex];
 
-    // Rule 1: Pehle round me 5/15 compulsory
-    if (isFirstRound && current.hand.contains(5) && cardValue != 5) {
-      warningMsg = "Pehle 5 number card hi chalna hoga!";
-      return; 
-    }
-    if (isFirstRound && totalPlayers == 3 && current.hand.contains(15) && cardValue != 15) {
-      warningMsg = "Pehle 15 number card hi chalna hoga!";
-      return;
+    // 1. RULE: Pehli baji me sabse chhota card (5 ya 15) hi chalna padega
+    if (isFirstRound) {
+      if (current.hand.contains(5) && cardValue != 5) {
+        warningMsg = "Pehle 5 number card hi chalna hoga!";
+        return; 
+      }
+      if (totalPlayers == 3 && current.hand.contains(15) && cardValue != 15) {
+        warningMsg = "Pehle 15 number card hi chalna hoga!";
+        return;
+      }
     }
 
-    // RULE 1 NEW: Agar table par pehle se card hai, toh bada card chalna compulsory hai
+    // Bada card compulsory rule
     if (currentRoundCards.isNotEmpty) {
       int highestOnTable = currentRoundCards.reduce(max);
       bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
@@ -108,15 +110,12 @@ class HundredGameLogic {
       if (mode == GameMode.offline) {
         isCardHiddenForPass = true;
       }
-      
-      // RULE 2 NEW: Auto-play last card if only 1 card left with everyone
       checkAutoPlayLastCard();
     } else {
       evaluateRoundWinner();
     }
   }
 
-  // RULE 2 NEW: Auto-play last card system
   void checkAutoPlayLastCard() {
     bool allHaveOneCard = players.every((p) => p.hand.length == 1);
     if (allHaveOneCard && currentRoundCards.length < totalPlayers) {
@@ -156,11 +155,7 @@ class HundredGameLogic {
     currentRoundCards.clear();
     playedCardOwners.clear();
     
-    if (mode == GameMode.offline) {
-      isCardHiddenForPass = true;
-    }
-
-    // Next round check for auto play
-    checkAutoPlayLastCard();
+    // Baji khatam hote hi Next Baji option aayega
+    isCardHiddenForPass = true;
   }
 }
