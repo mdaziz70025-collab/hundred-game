@@ -1,4 +1,4 @@
-import 'package0:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'game_models.dart';
 import 'game_logic.dart';
 
@@ -33,7 +33,7 @@ class _GameScreenState extends State<GameScreen> {
     game.startMatch(widget.playerNames);
   }
 
-  // TAASH PATTI CARD DESIGN (For Players Hand & Center Table)
+  // TAASH PATTI CARD DESIGN
   Widget _buildPlayingCard({required int value, bool isSelected = false, VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
@@ -105,7 +105,6 @@ class _GameScreenState extends State<GameScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text("100 Card Game", style: TextStyle(color: Colors.white, fontSize: 18)),
-            // 3. TARGET POINT DISPLAYED CLEARLY AT TOP
             Container(
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -165,7 +164,7 @@ class _GameScreenState extends State<GameScreen> {
                   else
                     SizedBox(width: 40),
 
-                  // 2. CENTER TABLE MAT WITH REAL TAASH CARDS
+                  // CENTER TABLE MAT WITH REAL TAASH CARDS
                   Container(
                     width: 170,
                     height: 170,
@@ -224,7 +223,7 @@ class _GameScreenState extends State<GameScreen> {
 
               Spacer(),
 
-              // 4. BOTTOM PLAYER 1 AREA WITH REAL TAASH PATTI CARDS
+              // BOTTOM PLAYER AREA
               Container(
                 padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                 decoration: BoxDecoration(
@@ -241,7 +240,6 @@ class _GameScreenState extends State<GameScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: activePlayer.hand.map((cardValue) {
-                          // 1. TAASH PATTI CARDS AT BOTTOM
                           return _buildPlayingCard(
                             value: cardValue,
                             onTap: () {
