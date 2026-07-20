@@ -39,7 +39,6 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     );
     game.startMatch(widget.playerNames);
 
-    // Active Player Turn Hilne Walli Animation
     _turnAnimationController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 600),
@@ -105,9 +104,9 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     ) ?? false;
   }
 
-  // PLAYER NAME WITH TURN ANIMATION WIDGET
   Widget _buildPlayerLabel(Player player, int playerIndex, {bool isRotated = false, int quarterTurns = 0}) {
     bool isCurrentTurn = cardsDealt && (game.currentPlayerIndex == playerIndex);
+    int wins = game.playerWinsMap[player.name] ?? 0;
 
     Widget textWidget = Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -119,24 +118,33 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
             ? [BoxShadow(color: Colors.greenAccent.withOpacity(0.6), blurRadius: 8, spreadRadius: 2)]
             : [],
       ),
-      child: Row(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (isCurrentTurn) ...[
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: Colors.amber, shape: BoxShape.circle),
-            ),
-            SizedBox(width: 4),
-          ],
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isCurrentTurn) ...[
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: Colors.amber, shape: BoxShape.circle),
+                ),
+                SizedBox(width: 4),
+              ],
+              Text(
+                "${player.name} : ${player.currentScore} pts",
+                style: TextStyle(
+                  color: isCurrentTurn ? Colors.white : Colors.amberAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: isCurrentTurn ? 14 : 12,
+                ),
+              ),
+            ],
+          ),
           Text(
-            "${player.name} : ${player.currentScore} pts",
-            style: TextStyle(
-              color: isCurrentTurn ? Colors.white : Colors.amberAccent,
-              fontWeight: FontWeight.bold,
-              fontSize: isCurrentTurn ? 15 : 13,
-            ),
+            "👑 Wins: $wins",
+            style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -232,7 +240,13 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("100 Card Game", style: TextStyle(color: Colors.white, fontSize: 16)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("100 Card Game", style: TextStyle(color: Colors.white, fontSize: 15)),
+                  Text("Round/Baji: #${game.totalRoundsPlayed}", style: TextStyle(color: Colors.amberAccent, fontSize: 11)),
+                ],
+              ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -241,7 +255,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                 ),
                 child: Text(
                   "TARGET: ${widget.targetScore}",
-                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
+                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
                 ),
               )
             ],
@@ -382,7 +396,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                     child: Text(game.warningMsg, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
 
-                // BOTTOM PLAYER HAND AREA (CARDS BATNE KE BAAD HI SHOW HOGA)
+                // BOTTOM PLAYER HAND AREA
                 if (cardsDealt)
                   Container(
                     padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
