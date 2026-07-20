@@ -19,7 +19,7 @@ class GameScreen extends StatefulWidget {
   _GameScreenState createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late HundredGameLogic game;
   
   bool isDealing = false;
@@ -28,6 +28,10 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   late AnimationController _turnAnimationController;
   late Animation<double> _turnScaleAnimation;
+
+  // 3D Card Flip Animation Controller
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
 
   @override
   void initState() {
@@ -47,11 +51,21 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     _turnScaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _turnAnimationController, curve: Curves.easeInOut),
     );
+
+    // Flip Animation Setup
+    _flipController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 400),
+    );
+    _flipAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _flipController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
     _turnAnimationController.dispose();
+    _flipController.dispose();
     super.dispose();
   }
 
@@ -104,7 +118,6 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     ) ?? false;
   }
 
-  // SUIT HELPER FOR PLAYING CARDS
   String _getCardSuit(int value) {
     if (value >= 80) return "♥️";
     if (value >= 50) return "♠️";
@@ -116,55 +129,81 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     return (suit == "♥️" || suit == "♦️") ? Colors.red.shade700 : Colors.black;
   }
 
-  // STYLISH PLAYING CARD WITH GLOW FOR HIGH CARDS
+  // PLAYING CARD WITH 3D FLIP EFFECT
   Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
     bool isHighValue = value >= 80;
     String suit = _getCardSuit(value);
     Color suitColor = _getSuitColor(suit);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 52,
-        height: 76,
-        margin: EdgeInsets.symmetric(horizontal: 3),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isHighValue ? Colors.amber.shade600 : Colors.blueGrey.shade300,
-            width: isHighValue ? 2.5 : 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isHighValue ? Colors.amber.withOpacity(0.5) : Colors.black38,
-              blurRadius: isHighValue ? 8 : 4,
-              spreadRadius: isHighValue ? 1 : 0,
-              offset: Offset(2, 3),
-            )
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 3.0, top: 2.0),
-                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
-              ),
-            ),
-            Text(suit, style: TextStyle(fontSize: 18, color: suitColor)),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 3.0, bottom: 2.0),
-                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: _flipAnimation,
+      builder: (context, child) {
+        // 3D Rotation effect simulation using transform matrix
+        double angle = _flipAnimation.value * 3.1416;
+        bool showBack = angle > 1.5708; // Halfway flip
+
+        return Transform(
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.001) // perspective
+            ..rotateY(angle),
+          alignment: Alignment.center,
+          child: showBack && _flipController.isAnimating
+              ? Container(
+                  width: 52,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade900,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white70, width: 1),
+                  ),
+                  child: Center(child: Text("🎴", style: TextStyle(fontSize: 14))),
+                )
+              : GestureDetector(
+                  onTap: onTap,
+                  child: Container(
+                    width: 52,
+                    height: 76,
+                    margin: EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isHighValue ? Colors.amber.shade600 : Colors.blueGrey.shade300,
+                        width: isHighValue ? 2.5 : 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isHighValue ? Colors.amber.withOpacity(0.5) : Colors.black38,
+                          blurRadius: isHighValue ? 8 : 4,
+                          spreadRadius: isHighValue ? 1 : 0,
+                          offset: Offset(2, 3),
+                        )
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Align(
+                          alignment: Alignment.topLeft,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 3.0, top: 2.0),
+                            child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
+                          ),
+                        ),
+                        Text(suit, style: TextStyle(fontSize: 18, color: suitColor)),
+                        Align(
+                          alignment: Alignment.bottomRight,
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 3.0, bottom: 2.0),
+                            child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+        );
+      },
     );
   }
 
@@ -305,7 +344,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
                 SizedBox(height: 15),
 
-                // CENTER ROW WITH TABLE MAT
+                // CENTER ROW WITH 3D REALISTIC CASINO GREEN TABLE TEXTURE MAT
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -328,15 +367,23 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                     else
                       SizedBox(width: 40),
 
-                    // CENTER CIRCLE TABLE MAT
+                    // REALISTIC CASINO GREEN FELT TABLE MAT
                     Container(
                       width: 175,
                       height: 175,
                       decoration: BoxDecoration(
-                        color: Colors.teal.shade900,
+                        gradient: RadialGradient(
+                          colors: [
+                            Color(0xFF0F5132), // Rich Casino Green Center
+                            Color(0xFF06321D), // Darker Felt Border
+                          ],
+                          radius: 0.8,
+                        ),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.amber, width: 3),
-                        boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 10)],
+                        border: Border.all(color: Colors.amber.shade600, width: 4),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black87, blurRadius: 12, spreadRadius: 2)
+                        ],
                       ),
                       child: Center(
                         child: !cardsDealt && !isDealing
@@ -439,6 +486,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                                 value: cardValue,
                                 onTap: () {
                                   setState(() {
+                                    _flipController.forward(from: 0.0); // Trigger flip animation
                                     game.playCard(cardValue);
                                   });
                                 },
@@ -529,7 +577,7 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                 ),
               ),
 
-            // CELEBRATION MATCH WINNER OVERLAY (FIXED: Colors.black87)
+            // MATCH WINNER OVERLAY
             if (game.winnerName.isNotEmpty)
               Container(
                 color: Colors.black87,
