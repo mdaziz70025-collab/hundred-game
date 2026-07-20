@@ -104,6 +104,84 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     ) ?? false;
   }
 
+  // SUIT HELPER FOR PLAYING CARDS
+  String _getCardSuit(int value) {
+    if (value >= 80) return "♥️";
+    if (value >= 50) return "♠️";
+    if (value >= 30) return "♦️";
+    return "♣️";
+  }
+
+  Color _getSuitColor(String suit) {
+    return (suit == "♥️" || suit == "♦️") ? Colors.red.shade700 : Colors.black;
+  }
+
+  // STYLISH PLAYING CARD WITH GLOW FOR HIGH CARDS
+  Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
+    bool isHighValue = value >= 80;
+    String suit = _getCardSuit(value);
+    Color suitColor = _getSuitColor(suit);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 52,
+        height: 76,
+        margin: EdgeInsets.symmetric(horizontal: 3),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isHighValue ? Colors.amber.shade600 : Colors.blueGrey.shade300,
+            width: isHighValue ? 2.5 : 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isHighValue ? Colors.amber.withOpacity(0.5) : Colors.black38,
+              blurRadius: isHighValue ? 8 : 4,
+              spreadRadius: isHighValue ? 1 : 0,
+              offset: Offset(2, 3),
+            )
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 3.0, top: 2.0),
+                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
+              ),
+            ),
+            Text(suit, style: TextStyle(fontSize: 18, color: suitColor)),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 3.0, bottom: 2.0),
+                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHiddenCard({bool isVertical = false}) {
+    return Container(
+      width: isVertical ? 22 : 32,
+      height: isVertical ? 36 : 24,
+      margin: EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: Colors.indigo.shade900,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.white70, width: 1),
+      ),
+      child: Center(child: Text("🎴", style: TextStyle(fontSize: 9))),
+    );
+  }
+
   Widget _buildPlayerLabel(Player player, int playerIndex, {bool isRotated = false, int quarterTurns = 0}) {
     bool isCurrentTurn = cardsDealt && (game.currentPlayerIndex == playerIndex);
     int wins = game.playerWinsMap[player.name] ?? 0;
@@ -159,63 +237,6 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     }
 
     return textWidget;
-  }
-
-  Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 50,
-        height: 72,
-        margin: EdgeInsets.symmetric(horizontal: 3),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.amber.shade700, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black45,
-              blurRadius: 4,
-              offset: Offset(2, 3),
-            )
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 3.0, top: 2.0),
-                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
-              ),
-            ),
-            Text("♠️", style: TextStyle(fontSize: 16, color: Colors.blue.shade900)),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 3.0, bottom: 2.0),
-                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHiddenCard({bool isVertical = false}) {
-    return Container(
-      width: isVertical ? 22 : 32,
-      height: isVertical ? 36 : 24,
-      margin: EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: Colors.indigo.shade900,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white70, width: 1),
-      ),
-      child: Center(child: Text("🎴", style: TextStyle(fontSize: 9))),
-    );
   }
 
   @override
@@ -508,20 +529,28 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                 ),
               ),
 
-            // MATCH WINNER OVERLAY
+            // CELEBRATION MATCH WINNER OVERLAY
             if (game.winnerName.isNotEmpty)
               Container(
-                color: Colors.black87,
+                color: Colors.black97,
                 width: double.infinity,
                 height: double.infinity,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Text("🎆 👑 🎆", style: TextStyle(fontSize: 40)),
+                    SizedBox(height: 10),
                     Text("🎉 ${game.winnerName} WINS THE MATCH! 🎉", style: TextStyle(color: Colors.yellow, fontSize: 26, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                    SizedBox(height: 10),
+                    Text("Congratulations! Champion of 100 Card Game!", style: TextStyle(color: Colors.white70, fontSize: 14)),
                     SizedBox(height: 30),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
-                      child: Text("BACK TO MENU", style: TextStyle(fontSize: 16)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber,
+                        foregroundColor: Colors.black,
+                        padding: EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      ),
+                      child: Text("BACK TO MENU", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       onPressed: () => Navigator.pop(context),
                     )
                   ],
