@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Haptic feedback ke liye
+import 'package:flutter/services.dart';
 import 'game_models.dart';
 import 'game_logic.dart';
 
@@ -29,8 +29,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   late AnimationController _turnAnimationController;
   late Animation<double> _turnScaleAnimation;
-  late AnimationController _flipController;
-  late Animation<double> _flipAnimation;
 
   @override
   void initState() {
@@ -50,25 +48,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _turnScaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _turnAnimationController, curve: Curves.easeInOut),
     );
-
-    _flipController = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 400),
-    );
-    _flipAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _flipController, curve: Curves.easeInOut),
-    );
   }
 
   @override
   void dispose() {
     _turnAnimationController.dispose();
-    _flipController.dispose();
     super.dispose();
   }
 
   void _startDealingAnimation() async {
-    HapticFeedback.mediumImpact(); // Vibration on deal start
+    HapticFeedback.mediumImpact();
     setState(() {
       isDealing = true;
       cardsDealt = false;
@@ -118,7 +107,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ) ?? false;
   }
 
-  // SCORE HISTORY DRAWER SHEET
   void _showScoreHistoryDrawer() {
     showModalBottomSheet(
       context: context,
@@ -172,79 +160,55 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return (suit == "♥️" || suit == "♦️") ? Colors.red.shade700 : Colors.black;
   }
 
+  // FIXED PLAYING CARD (SEEDHA CARD WITH CORRECT NUMBERS)
   Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
     bool isHighValue = value >= 80;
     String suit = _getCardSuit(value);
     Color suitColor = _getSuitColor(suit);
 
-    return AnimatedBuilder(
-      animation: _flipAnimation,
-      builder: (context, child) {
-        double angle = _flipAnimation.value * 3.1416;
-        bool showBack = angle > 1.5708;
-
-        return Transform(
-          transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.001)
-            ..rotateY(angle),
-          alignment: Alignment.center,
-          child: showBack && _flipController.isAnimating
-              ? Container(
-                  width: 52,
-                  height: 76,
-                  decoration: BoxDecoration(
-                    color: Colors.indigo.shade900,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white70, width: 1),
-                  ),
-                  child: Center(child: Text("🎴", style: TextStyle(fontSize: 14))),
-                )
-              : GestureDetector(
-                  onTap: onTap,
-                  child: Container(
-                    width: 52,
-                    height: 76,
-                    margin: EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isHighValue ? Colors.amber.shade600 : Colors.blueGrey.shade300,
-                        width: isHighValue ? 2.5 : 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isHighValue ? Colors.amber.withOpacity(0.5) : Colors.black38,
-                          blurRadius: isHighValue ? 8 : 4,
-                          spreadRadius: isHighValue ? 1 : 0,
-                          offset: Offset(2, 3),
-                        )
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 3.0, top: 2.0),
-                            child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
-                          ),
-                        ),
-                        Text(suit, style: TextStyle(fontSize: 18, color: suitColor)),
-                        Align(
-                          alignment: Alignment.bottomRight,
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 3.0, bottom: 2.0),
-                            child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-        );
-      },
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 52,
+        height: 76,
+        margin: EdgeInsets.symmetric(horizontal: 3),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isHighValue ? Colors.amber.shade600 : Colors.blueGrey.shade300,
+            width: isHighValue ? 2.5 : 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isHighValue ? Colors.amber.withOpacity(0.5) : Colors.black38,
+              blurRadius: isHighValue ? 8 : 4,
+              spreadRadius: isHighValue ? 1 : 0,
+              offset: Offset(2, 3),
+            )
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0, top: 3.0),
+                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: suitColor)),
+              ),
+            ),
+            Text(suit, style: TextStyle(fontSize: 18, color: suitColor)),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 4.0, bottom: 3.0),
+                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: suitColor)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -350,7 +314,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
               Row(
                 children: [
-                  // SCORE HISTORY BUTTON
                   IconButton(
                     icon: Icon(Icons.history, color: Colors.amber),
                     onPressed: _showScoreHistoryDrawer,
@@ -536,9 +499,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                               return _buildPlayingCard(
                                 value: cardValue,
                                 onTap: () {
-                                  HapticFeedback.selectionClick(); // Haptic click vibration on play
+                                  HapticFeedback.selectionClick();
                                   setState(() {
-                                    _flipController.forward(from: 0.0);
                                     game.playCard(cardValue);
                                   });
                                 },
