@@ -3,8 +3,8 @@ import 'game_models.dart';
 
 class HundredGameLogic {
   final GameMode mode;
-  final int totalPlayers;
-  final int targetScore;
+  final int totalPlayers; // 2, 3, ya 4
+  final int targetScore; // 300, 500, 1000
 
   List<Player> players = [];
   List<int> currentRoundCards = [];
@@ -13,6 +13,7 @@ class HundredGameLogic {
   bool isCardHiddenForPass = false;
   String firstTurnNotice = "";
   bool showFirstTurnDialog = true;
+  String winnerName = "";
 
   HundredGameLogic({
     required this.mode,
@@ -21,8 +22,9 @@ class HundredGameLogic {
   });
 
   void startMatch(List<String> playerNames) {
-    List<int> deck = List.generate(20, (i) => (i + 1) * 5);
+    List<int> deck = List.generate(20, (i) => (i + 1) * 5); // [5, 10 ... 100]
 
+    // 3 Players Rule: 5 aur 10 remove hote hain
     if (totalPlayers == 3) {
       deck.remove(5);
       deck.remove(10);
@@ -31,7 +33,8 @@ class HundredGameLogic {
     deck.shuffle(Random());
 
     players.clear();
-    int cardsPerPlayer = (totalPlayers == 2) ? 10 : 5;
+    // Cards distribution logic: 2 players = 10, 3 players = 6, 4 players = 5
+    int cardsPerPlayer = (totalPlayers == 2) ? 10 : (totalPlayers == 3 ? 6 : 5);
 
     for (int i = 0; i < totalPlayers; i++) {
       List<int> hand = deck.sublist(i * cardsPerPlayer, (i + 1) * cardsPerPlayer);
@@ -91,6 +94,11 @@ class HundredGameLogic {
 
     int roundPoints = currentRoundCards.reduce((a, b) => a + b);
     players[winnerIndex].currentScore += roundPoints;
+
+    // Check match winner
+    if (players[winnerIndex].currentScore >= targetScore) {
+      winnerName = players[winnerIndex].name;
+    }
 
     currentPlayerIndex = winnerIndex;
     currentRoundCards.clear();
