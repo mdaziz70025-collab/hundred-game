@@ -11,6 +11,9 @@ class HundredGameLogic {
   List<String> playedCardOwners = [];
   int currentPlayerIndex = 0;
   
+  int totalRoundsPlayed = 0; // TOTAL ROUNDS / BAJI COUNT
+  Map<String, int> playerWinsMap = {}; // WINS COUNT PER PLAYER
+
   bool isCardHiddenForPass = false;
   String firstTurnNotice = "";
   bool showFirstTurnDialog = false;
@@ -34,13 +37,16 @@ class HundredGameLogic {
 
   void startMatch(List<String> playerNames) {
     players.clear();
+    playerWinsMap.clear();
+    totalRoundsPlayed = 0;
+
     for (int i = 0; i < totalPlayers; i++) {
       players.add(Player(id: 'p_$i', name: playerNames[i], hand: []));
+      playerWinsMap[playerNames[i]] = 0; // Win count starting at 0
     }
     dealNewDeck();
   }
 
-  // ENHANCED RANDOM DECK DEALING
   void dealNewDeck() {
     isDeckFinished = false;
     isFirstRound = true;
@@ -48,17 +54,16 @@ class HundredGameLogic {
     currentRoundCards.clear();
     playedCardOwners.clear();
 
-    List<int> deck = List.generate(20, (i) => (i + 1) * 5); // [5, 10, 15 ... 100]
+    List<int> deck = List.generate(20, (i) => (i + 1) * 5);
 
     if (totalPlayers == 3) {
       deck.remove(5);
       deck.remove(10);
     }
 
-    // High Quality Random Shuffle (Multiple passes to break bias)
     var rng = Random.secure();
     deck.shuffle(rng);
-    deck.shuffle(rng); // Extra shuffle for fair distribution
+    deck.shuffle(rng);
 
     int cardsPerPlayer = (totalPlayers == 2) ? 10 : (totalPlayers == 3 ? 6 : 5);
 
@@ -147,6 +152,7 @@ class HundredGameLogic {
   }
 
   void evaluateRoundWinner() {
+    totalRoundsPlayed++; // Increment total rounds played
     int highestCard = -1;
     int winningCardOwnerIndex = -1;
 
@@ -164,11 +170,16 @@ class HundredGameLogic {
     }
 
     if (winningCardOwnerIndex != -1) {
+      String winnerNameStr = players[winningCardOwnerIndex].name;
       players[winningCardOwnerIndex].currentScore += roundPoints;
-      lastRoundWinnerMsg = "🎉 ${players[winningCardOwnerIndex].name} won the baji (+${roundPoints} pts)!";
+      
+      // Update Baji Wins count
+      playerWinsMap[winnerNameStr] = (playerWinsMap[winnerNameStr] ?? 0) + 1;
+
+      lastRoundWinnerMsg = "🎉 $winnerNameStr won Baji #${totalRoundsPlayed} (+${roundPoints} pts)!";
 
       if (players[winningCardOwnerIndex].currentScore >= targetScore) {
-        winnerName = players[winningCardOwnerIndex].name;
+        winnerName = winnerNameStr;
       }
 
       currentPlayerIndex = winningCardOwnerIndex;
