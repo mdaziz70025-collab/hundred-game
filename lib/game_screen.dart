@@ -273,10 +273,10 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
 
-          // Pass Phone Screen
+          // Pass Phone Screen (FIXED: Colors.black87)
           if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty)
             Container(
-              color: Colors.black97,
+              color: Colors.black87,
               width: double.infinity,
               height: double.infinity,
               child: Column(
