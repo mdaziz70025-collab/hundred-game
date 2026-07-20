@@ -13,7 +13,7 @@ class HundredGameLogic {
   
   bool isCardHiddenForPass = false;
   String firstTurnNotice = "";
-  bool showFirstTurnDialog = true;
+  bool showFirstTurnDialog = false;
   String lastRoundWinnerMsg = "";
   String winnerName = "";
   String warningMsg = "";
@@ -40,20 +40,25 @@ class HundredGameLogic {
     dealNewDeck();
   }
 
+  // ENHANCED RANDOM DECK DEALING
   void dealNewDeck() {
     isDeckFinished = false;
     isFirstRound = true;
+    showFirstTurnDialog = false;
     currentRoundCards.clear();
     playedCardOwners.clear();
 
-    List<int> deck = List.generate(20, (i) => (i + 1) * 5);
+    List<int> deck = List.generate(20, (i) => (i + 1) * 5); // [5, 10, 15 ... 100]
 
     if (totalPlayers == 3) {
       deck.remove(5);
       deck.remove(10);
     }
 
-    deck.shuffle(Random());
+    // High Quality Random Shuffle (Multiple passes to break bias)
+    var rng = Random.secure();
+    deck.shuffle(rng);
+    deck.shuffle(rng); // Extra shuffle for fair distribution
 
     int cardsPerPlayer = (totalPlayers == 2) ? 10 : (totalPlayers == 3 ? 6 : 5);
 
@@ -83,7 +88,10 @@ class HundredGameLogic {
     }
 
     currentPlayerIndex = startingIndex;
-    firstTurnNotice = "${players[startingIndex].name} ke paas $lowestCard number card hai! Pehla turn inka hai.";
+    firstTurnNotice = "${players[startingIndex].name} ke paas $lowestCard number card gaya hai! Pehla turn inka hai.";
+  }
+
+  void revealFirstTurnDialog() {
     showFirstTurnDialog = true;
   }
 
@@ -138,17 +146,13 @@ class HundredGameLogic {
     }
   }
 
-  // FIXED WINNER EVALUATION LOGIC
   void evaluateRoundWinner() {
     int highestCard = -1;
     int winningCardOwnerIndex = -1;
 
-    // Sabse bada card kiska tha, pehle correctly search karein
     for (int i = 0; i < currentRoundCards.length; i++) {
       if (currentRoundCards[i] > highestCard) {
         highestCard = currentRoundCards[i];
-        
-        // Match player name with played card owner
         String ownerName = playedCardOwners[i];
         winningCardOwnerIndex = players.indexWhere((p) => p.name == ownerName);
       }
@@ -167,7 +171,6 @@ class HundredGameLogic {
         winnerName = players[winningCardOwnerIndex].name;
       }
 
-      // Winner hi agli baji ka pehla card chalega
       currentPlayerIndex = winningCardOwnerIndex;
     }
 
