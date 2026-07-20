@@ -19,10 +19,9 @@ class GameScreen extends StatefulWidget {
   _GameScreenState createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+class _GameScreenState extends State<GameScreen> {
   late HundredGameLogic game;
   
-  // Dealing Animation Variables
   bool isDealing = false;
   bool cardsDealt = false;
   int dealtCardsCount = 0;
@@ -38,7 +37,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     game.startMatch(widget.playerNames);
   }
 
-  // FAST DEALING ANIMATION (UNDER 10 SECONDS - SIMULTANEOUS FEEL)
   void _startDealingAnimation() async {
     setState(() {
       isDealing = true;
@@ -48,9 +46,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     int totalCards = (widget.totalPlayers == 3) ? 18 : 20;
 
-    // Fast speed (150ms delay -> ~3 seconds me poora deck distribution finish)
     for (int i = 0; i < totalCards; i++) {
-      await Future.delayed(Duration(milliseconds: 150)); 
+      await Future.delayed(Duration(milliseconds: 100)); 
       if (mounted) {
         setState(() {
           dealtCardsCount = i + 1;
@@ -62,7 +59,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (mounted) {
       setState(() {
         isDealing = false;
-        cardsDealt = true; // Batne ke baad cards khulenge
+        cardsDealt = true;
       });
     }
   }
@@ -92,8 +89,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 52,
-        height: 75,
+        width: 50,
+        height: 72,
         margin: EdgeInsets.symmetric(horizontal: 3),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -102,8 +99,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           boxShadow: [
             BoxShadow(
               color: Colors.black45,
-              blurRadius: 5,
-              offset: Offset(2, 4),
+              blurRadius: 4,
+              offset: Offset(2, 3),
             )
           ],
         ),
@@ -114,15 +111,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               alignment: Alignment.topLeft,
               child: Padding(
                 padding: const EdgeInsets.only(left: 3.0, top: 2.0),
-                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black)),
+                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
               ),
             ),
-            Text("♠️", style: TextStyle(fontSize: 18, color: Colors.blue.shade900)),
+            Text("♠️", style: TextStyle(fontSize: 16, color: Colors.blue.shade900)),
             Align(
               alignment: Alignment.bottomRight,
               child: Padding(
                 padding: const EdgeInsets.only(right: 3.0, bottom: 2.0),
-                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black)),
+                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black)),
               ),
             ),
           ],
@@ -133,15 +130,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildHiddenCard({bool isVertical = false}) {
     return Container(
-      width: isVertical ? 24 : 34,
-      height: isVertical ? 38 : 26,
+      width: isVertical ? 22 : 32,
+      height: isVertical ? 36 : 24,
       margin: EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: Colors.indigo.shade900,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white70, width: 1),
       ),
-      child: Center(child: Text("🎴", style: TextStyle(fontSize: 10))),
+      child: Center(child: Text("🎴", style: TextStyle(fontSize: 9))),
     );
   }
 
@@ -187,13 +184,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Column(
               children: [
                 SizedBox(height: 10),
-                
-                // Top Player
+
+                // 2. TOP PLAYER NAME & CARDS
                 if (game.players.length >= 3)
                   Column(
                     children: [
-                      Text("${game.players[2].name} : ${game.players[2].currentScore} pts", 
-                          style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text(
+                        "${game.players[2].name} : ${game.players[2].currentScore} pts", 
+                        style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: cardsDealt 
@@ -203,13 +203,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     ],
                   ),
 
-                Spacer(),
+                SizedBox(height: 15),
 
-                // Middle Row
+                // 1 & 2. CENTER TABLE MAT SHIFTED UP & PLAYERS AROUND IT
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Left Player
+                    // LEFT PLAYER
                     if (game.players.length == 4)
                       Padding(
                         padding: const EdgeInsets.only(left: 6.0),
@@ -217,7 +217,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           children: [
                             RotatedBox(
                               quarterTurns: 1,
-                              child: Text("${game.players[3].name} : ${game.players[3].currentScore} pts", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                              child: Text(
+                                "${game.players[3].name} : ${game.players[3].currentScore} pts", 
+                                style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
                             ),
                             SizedBox(height: 5),
                             Column(
@@ -231,10 +234,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     else
                       SizedBox(width: 40),
 
-                    // Center Table Mat / Deck Area
+                    // CENTER CIRCLE TABLE MAT
                     Container(
-                      width: 170,
-                      height: 170,
+                      width: 175,
+                      height: 175,
                       decoration: BoxDecoration(
                         color: Colors.teal.shade900,
                         shape: BoxShape.circle,
@@ -257,10 +260,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text("Dealing Fast...", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
-                                      SizedBox(height: 8),
+                                      SizedBox(height: 6),
                                       CircularProgressIndicator(color: Colors.amber),
-                                      SizedBox(height: 8),
-                                      Text("$dealtCardsCount Cards Dealt", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                      SizedBox(height: 6),
+                                      Text("$dealtCardsCount Cards", style: TextStyle(color: Colors.white70, fontSize: 11)),
                                     ],
                                   )
                                 : game.currentRoundCards.isEmpty
@@ -287,7 +290,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       ),
                     ),
 
-                    // Right Player
+                    // RIGHT PLAYER
                     if (game.players.length >= 2)
                       Padding(
                         padding: const EdgeInsets.only(right: 6.0),
@@ -295,7 +298,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           children: [
                             RotatedBox(
                               quarterTurns: 3,
-                              child: Text("${game.players[1].name} : ${game.players[1].currentScore} pts", style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                              child: Text(
+                                "${game.players[1].name} : ${game.players[1].currentScore} pts", 
+                                style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
                             ),
                             SizedBox(height: 5),
                             Column(
@@ -311,6 +317,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ],
                 ),
 
+                // 2. BOTTOM PLAYER NAME (Directly below circle)
+                SizedBox(height: 10),
+                Text(
+                  "${game.players[0].name} : ${game.players[0].currentScore} pts",
+                  style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+
                 Spacer(),
 
                 if (game.warningMsg.isNotEmpty)
@@ -320,7 +333,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     child: Text(game.warningMsg, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
 
-                // Bottom Active Player Area
+                // BOTTOM PLAYER HAND AREA
                 Container(
                   padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   decoration: BoxDecoration(
@@ -329,9 +342,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
                   child: Column(
                     children: [
-                      Text("Turn: ${activePlayer.name} (Score: ${activePlayer.currentScore} pts)", 
-                          style: TextStyle(color: Colors.cyanAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 12),
+                      Text("Turn: ${activePlayer.name}", 
+                          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 10),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
@@ -356,7 +369,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ],
             ),
 
-            // First Turn Dialog (Appears only after dealing)
+            // First Turn Popup
             if (game.showFirstTurnDialog && cardsDealt)
               Container(
                 color: Colors.black54,
@@ -372,7 +385,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
 
-            // Pass Phone Screen
+            // 3. NEXT BAJI / NEXT TURN BUTTON OVERLAY
             if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt)
               Container(
                 color: Colors.black87,
@@ -390,9 +403,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
-                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       ),
-                      child: Text("NEXT BAJI / START TURN", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: Text("NEXT BAJI / CONTINUE", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
                       onPressed: () => setState(() {
                         game.isCardHiddenForPass = false;
                         game.lastRoundWinnerMsg = "";
