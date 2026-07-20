@@ -1,6 +1,13 @@
 import 'dart:math';
 import 'game_models.dart';
 
+class RoundHistory {
+  final int roundNumber;
+  final String winnerName;
+  final int points;
+  RoundHistory({required this.roundNumber, required this.winnerName, required this.points});
+}
+
 class HundredGameLogic {
   final GameMode mode;
   final int totalPlayers;
@@ -11,8 +18,9 @@ class HundredGameLogic {
   List<String> playedCardOwners = [];
   int currentPlayerIndex = 0;
   
-  int totalRoundsPlayed = 0; // TOTAL ROUNDS / BAJI COUNT
-  Map<String, int> playerWinsMap = {}; // WINS COUNT PER PLAYER
+  int totalRoundsPlayed = 0;
+  Map<String, int> playerWinsMap = {};
+  List<RoundHistory> roundHistoryList = []; // SCORE HISTORY LOG
 
   bool isCardHiddenForPass = false;
   String firstTurnNotice = "";
@@ -38,11 +46,12 @@ class HundredGameLogic {
   void startMatch(List<String> playerNames) {
     players.clear();
     playerWinsMap.clear();
+    roundHistoryList.clear();
     totalRoundsPlayed = 0;
 
     for (int i = 0; i < totalPlayers; i++) {
       players.add(Player(id: 'p_$i', name: playerNames[i], hand: []));
-      playerWinsMap[playerNames[i]] = 0; // Win count starting at 0
+      playerWinsMap[playerNames[i]] = 0;
     }
     dealNewDeck();
   }
@@ -152,7 +161,7 @@ class HundredGameLogic {
   }
 
   void evaluateRoundWinner() {
-    totalRoundsPlayed++; // Increment total rounds played
+    totalRoundsPlayed++;
     int highestCard = -1;
     int winningCardOwnerIndex = -1;
 
@@ -173,8 +182,14 @@ class HundredGameLogic {
       String winnerNameStr = players[winningCardOwnerIndex].name;
       players[winningCardOwnerIndex].currentScore += roundPoints;
       
-      // Update Baji Wins count
       playerWinsMap[winnerNameStr] = (playerWinsMap[winnerNameStr] ?? 0) + 1;
+      
+      // Add to History Log
+      roundHistoryList.add(RoundHistory(
+        roundNumber: totalRoundsPlayed,
+        winnerName: winnerNameStr,
+        points: roundPoints,
+      ));
 
       lastRoundWinnerMsg = "🎉 $winnerNameStr won Baji #${totalRoundsPlayed} (+${roundPoints} pts)!";
 
