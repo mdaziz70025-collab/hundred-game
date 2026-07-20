@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart0:math';
 import 'game_models.dart';
 
 class HundredGameLogic {
@@ -19,6 +19,7 @@ class HundredGameLogic {
   String warningMsg = "";
   
   bool isFirstRound = true;
+  bool isDeckFinished = false; // Check agar saare cards khel liye gaye hain
 
   HundredGameLogic({
     required this.mode,
@@ -32,7 +33,21 @@ class HundredGameLogic {
   }
 
   void startMatch(List<String> playerNames) {
-    List<int> deck = List.generate(20, (i) => (i + 1) * 5);
+    players.clear();
+    for (int i = 0; i < totalPlayers; i++) {
+      players.add(Player(id: 'p_$i', name: playerNames[i], hand: []));
+    }
+    dealNewDeck();
+  }
+
+  // Agli baji ke liye naya deck shuffle aur deal karne ka function
+  void dealNewDeck() {
+    isDeckFinished = false;
+    isFirstRound = true;
+    currentRoundCards.clear();
+    playedCardOwners.clear();
+
+    List<int> deck = List.generate(20, (i) => (i + 1) * 5); // [5, 10, 15 ... 100]
 
     if (totalPlayers == 3) {
       deck.remove(5);
@@ -41,13 +56,12 @@ class HundredGameLogic {
 
     deck.shuffle(Random());
 
-    players.clear();
     int cardsPerPlayer = (totalPlayers == 2) ? 10 : (totalPlayers == 3 ? 6 : 5);
 
     for (int i = 0; i < totalPlayers; i++) {
       List<int> hand = deck.sublist(i * cardsPerPlayer, (i + 1) * cardsPerPlayer);
       hand.sort();
-      players.add(Player(id: 'p_$i', name: playerNames[i], hand: hand));
+      players[i].hand = hand;
     }
 
     determineFirstPlayer();
@@ -70,7 +84,7 @@ class HundredGameLogic {
     }
 
     currentPlayerIndex = startingIndex;
-    firstTurnNotice = "${players[startingIndex].name} ke paas $lowestCard number card hai! Pehla card $lowestCard hi chalna compulsory hai.";
+    firstTurnNotice = "${players[startingIndex].name} ke paas $lowestCard number card hai! Pehla turn inka hai.";
     showFirstTurnDialog = true;
   }
 
@@ -78,7 +92,6 @@ class HundredGameLogic {
     warningMsg = "";
     Player current = players[currentPlayerIndex];
 
-    // 1. RULE: Pehli baji me sabse chhota card (5 ya 15) hi chalna padega
     if (isFirstRound) {
       if (current.hand.contains(5) && cardValue != 5) {
         warningMsg = "Pehle 5 number card hi chalna hoga!";
@@ -90,7 +103,6 @@ class HundredGameLogic {
       }
     }
 
-    // Bada card compulsory rule
     if (currentRoundCards.isNotEmpty) {
       int highestOnTable = currentRoundCards.reduce(max);
       bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
@@ -146,6 +158,7 @@ class HundredGameLogic {
     players[winnerIndex].currentScore += roundPoints;
     lastRoundWinnerMsg = "🎉 ${players[winnerIndex].name} won the baji (+${roundPoints} pts)!";
 
+    // Target Score check
     if (players[winnerIndex].currentScore >= targetScore) {
       winnerName = players[winnerIndex].name;
     }
@@ -154,8 +167,13 @@ class HundredGameLogic {
     isFirstRound = false;
     currentRoundCards.clear();
     playedCardOwners.clear();
-    
-    // Baji khatam hote hi Next Baji option aayega
-    isCardHiddenForPass = true;
+
+    // Check agar saare players ke haath ke cards khatam ho gaye hain
+    bool allHandsEmpty = players.every((p) => p.hand.isEmpty);
+    if (allHandsEmpty && winnerName.isEmpty) {
+      isDeckFinished = true; // Agli baji/hand ke liye
+    } else if (mode == GameMode.offline) {
+      isCardHiddenForPass = true;
+    }
   }
 }
