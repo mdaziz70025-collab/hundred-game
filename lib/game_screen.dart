@@ -19,8 +19,13 @@ class GameScreen extends StatefulWidget {
   _GameScreenState createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late HundredGameLogic game;
+  
+  // Dealing Animation Variables
+  bool isDealing = false;
+  bool cardsDealt = false;
+  int dealtCardsCount = 0;
 
   @override
   void initState() {
@@ -33,7 +38,35 @@ class _GameScreenState extends State<GameScreen> {
     game.startMatch(widget.playerNames);
   }
 
-  // 3. EXIT CONFIRMATION DIALOG
+  // FAST DEALING ANIMATION (UNDER 10 SECONDS - SIMULTANEOUS FEEL)
+  void _startDealingAnimation() async {
+    setState(() {
+      isDealing = true;
+      cardsDealt = false;
+      dealtCardsCount = 0;
+    });
+
+    int totalCards = (widget.totalPlayers == 3) ? 18 : 20;
+
+    // Fast speed (150ms delay -> ~3 seconds me poora deck distribution finish)
+    for (int i = 0; i < totalCards; i++) {
+      await Future.delayed(Duration(milliseconds: 150)); 
+      if (mounted) {
+        setState(() {
+          dealtCardsCount = i + 1;
+        });
+      }
+    }
+
+    await Future.delayed(Duration(milliseconds: 200));
+    if (mounted) {
+      setState(() {
+        isDealing = false;
+        cardsDealt = true; // Batne ke baad cards khulenge
+      });
+    }
+  }
+
   Future<bool> _showExitDialog() async {
     return await showDialog(
       context: context,
@@ -123,7 +156,6 @@ class _GameScreenState extends State<GameScreen> {
         appBar: AppBar(
           backgroundColor: Color(0xFF0F172A),
           elevation: 4,
-          // 3. BACK & EXIT BUTTON AT TOP LEFT
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () async {
@@ -164,7 +196,9 @@ class _GameScreenState extends State<GameScreen> {
                           style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 15)),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(game.players[2].hand.length, (_) => _buildHiddenCard()),
+                        children: cardsDealt 
+                            ? List.generate(game.players[2].hand.length, (_) => _buildHiddenCard())
+                            : [],
                       ),
                     ],
                   ),
@@ -187,7 +221,9 @@ class _GameScreenState extends State<GameScreen> {
                             ),
                             SizedBox(height: 5),
                             Column(
-                              children: List.generate(game.players[3].hand.length, (_) => _buildHiddenCard(isVertical: true)),
+                              children: cardsDealt 
+                                  ? List.generate(game.players[3].hand.length, (_) => _buildHiddenCard(isVertical: true))
+                                  : [],
                             ),
                           ],
                         ),
@@ -195,7 +231,7 @@ class _GameScreenState extends State<GameScreen> {
                     else
                       SizedBox(width: 40),
 
-                    // Center Table Mat
+                    // Center Table Mat / Deck Area
                     Container(
                       width: 170,
                       height: 170,
@@ -206,27 +242,48 @@ class _GameScreenState extends State<GameScreen> {
                         boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 10)],
                       ),
                       child: Center(
-                        child: game.currentRoundCards.isEmpty
-                            ? Text("Table Mat", style: TextStyle(color: Colors.white54, fontSize: 13))
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Wrap(
-                                    spacing: 4,
-                                    runSpacing: 4,
-                                    alignment: WrapAlignment.center,
-                                    children: List.generate(game.currentRoundCards.length, (index) {
-                                      return Column(
+                        child: !cardsDealt && !isDealing
+                            ? ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.amber,
+                                  foregroundColor: Colors.black,
+                                ),
+                                icon: Icon(Icons.style),
+                                label: Text("DEAL CARDS", style: TextStyle(fontWeight: FontWeight.bold)),
+                                onPressed: _startDealingAnimation,
+                              )
+                            : isDealing
+                                ? Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text("Dealing Fast...", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                                      SizedBox(height: 8),
+                                      CircularProgressIndicator(color: Colors.amber),
+                                      SizedBox(height: 8),
+                                      Text("$dealtCardsCount Cards Dealt", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                    ],
+                                  )
+                                : game.currentRoundCards.isEmpty
+                                    ? Text("Table Mat", style: TextStyle(color: Colors.white54, fontSize: 13))
+                                    : Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          _buildPlayingCard(value: game.currentRoundCards[index]),
-                                          SizedBox(height: 2),
-                                          Text(game.playedCardOwners[index], style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                          Wrap(
+                                            spacing: 4,
+                                            runSpacing: 4,
+                                            alignment: WrapAlignment.center,
+                                            children: List.generate(game.currentRoundCards.length, (index) {
+                                              return Column(
+                                                children: [
+                                                  _buildPlayingCard(value: game.currentRoundCards[index]),
+                                                  SizedBox(height: 2),
+                                                  Text(game.playedCardOwners[index], style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                                ],
+                                              );
+                                            }),
+                                          ),
                                         ],
-                                      );
-                                    }),
-                                  ),
-                                ],
-                              ),
+                                      ),
                       ),
                     ),
 
@@ -242,7 +299,9 @@ class _GameScreenState extends State<GameScreen> {
                             ),
                             SizedBox(height: 5),
                             Column(
-                              children: List.generate(game.players[1].hand.length, (_) => _buildHiddenCard(isVertical: true)),
+                              children: cardsDealt 
+                                  ? List.generate(game.players[1].hand.length, (_) => _buildHiddenCard(isVertical: true))
+                                  : [],
                             ),
                           ],
                         ),
@@ -277,16 +336,18 @@ class _GameScreenState extends State<GameScreen> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: activePlayer.hand.map((cardValue) {
-                            return _buildPlayingCard(
-                              value: cardValue,
-                              onTap: () {
-                                setState(() {
-                                  game.playCard(cardValue);
-                                });
-                              },
-                            );
-                          }).toList(),
+                          children: cardsDealt 
+                              ? activePlayer.hand.map((cardValue) {
+                                  return _buildPlayingCard(
+                                    value: cardValue,
+                                    onTap: () {
+                                      setState(() {
+                                        game.playCard(cardValue);
+                                      });
+                                    },
+                                  );
+                                }).toList()
+                              : [Text("Tap 'DEAL CARDS' on center table to start", style: TextStyle(color: Colors.white54, fontSize: 12))],
                         ),
                       ),
                     ],
@@ -295,8 +356,8 @@ class _GameScreenState extends State<GameScreen> {
               ],
             ),
 
-            // First Turn Dialog
-            if (game.showFirstTurnDialog)
+            // First Turn Dialog (Appears only after dealing)
+            if (game.showFirstTurnDialog && cardsDealt)
               Container(
                 color: Colors.black54,
                 child: AlertDialog(
@@ -311,8 +372,8 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
 
-            // 2. NEXT BAJI & PASS PHONE OVERLAY
-            if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty)
+            // Pass Phone Screen
+            if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt)
               Container(
                 color: Colors.black87,
                 width: double.infinity,
