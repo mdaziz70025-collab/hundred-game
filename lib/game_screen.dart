@@ -33,8 +33,7 @@ class _GameScreenState extends State<GameScreen> {
     game.startMatch(widget.playerNames);
   }
 
-  // TAASH PATTI CARD DESIGN
-  Widget _buildPlayingCard({required int value, bool isSelected = false, VoidCallback? onTap}) {
+  Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -77,7 +76,6 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  // Hidden Opponent Cards
   Widget _buildHiddenCard({bool isVertical = false}) {
     return Container(
       width: isVertical ? 24 : 34,
@@ -125,7 +123,7 @@ class _GameScreenState extends State<GameScreen> {
             children: [
               SizedBox(height: 10),
               
-              // Top Player (Player 3)
+              // Top Player
               if (game.players.length >= 3)
                 Column(
                   children: [
@@ -140,11 +138,11 @@ class _GameScreenState extends State<GameScreen> {
 
               Spacer(),
 
-              // Middle Row (Left, Center Table, Right)
+              // Middle Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Left Player (Player 4)
+                  // Left Player
                   if (game.players.length == 4)
                     Padding(
                       padding: const EdgeInsets.only(left: 6.0),
@@ -164,7 +162,7 @@ class _GameScreenState extends State<GameScreen> {
                   else
                     SizedBox(width: 40),
 
-                  // CENTER TABLE MAT WITH REAL TAASH CARDS
+                  // Center Table Mat
                   Container(
                     width: 170,
                     height: 170,
@@ -199,7 +197,7 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
 
-                  // Right Player (Player 2)
+                  // Right Player
                   if (game.players.length >= 2)
                     Padding(
                       padding: const EdgeInsets.only(right: 6.0),
@@ -223,7 +221,15 @@ class _GameScreenState extends State<GameScreen> {
 
               Spacer(),
 
-              // BOTTOM PLAYER AREA
+              // Warning Banner (Agar galat card chala)
+              if (game.warningMsg.isNotEmpty)
+                Container(
+                  color: Colors.redAccent,
+                  padding: EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                  child: Text(game.warningMsg, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+
+              // Bottom Active Player Area
               Container(
                 padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                 decoration: BoxDecoration(
@@ -257,7 +263,7 @@ class _GameScreenState extends State<GameScreen> {
             ],
           ),
 
-          // First Turn Notice Popup
+          // First Turn Popup
           if (game.showFirstTurnDialog)
             Container(
               color: Colors.black54,
@@ -273,7 +279,7 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
 
-          // Pass Phone Screen (FIXED: Colors.black87)
+          // Pass Phone Screen
           if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty)
             Container(
               color: Colors.black87,
