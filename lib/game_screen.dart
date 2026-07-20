@@ -185,7 +185,7 @@ class _GameScreenState extends State<GameScreen> {
               children: [
                 SizedBox(height: 10),
 
-                // 2. TOP PLAYER NAME & CARDS
+                // TOP PLAYER
                 if (game.players.length >= 3)
                   Column(
                     children: [
@@ -205,7 +205,7 @@ class _GameScreenState extends State<GameScreen> {
 
                 SizedBox(height: 15),
 
-                // 1 & 2. CENTER TABLE MAT SHIFTED UP & PLAYERS AROUND IT
+                // CENTER ROW WITH TABLE MAT
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -317,7 +317,6 @@ class _GameScreenState extends State<GameScreen> {
                   ],
                 ),
 
-                // 2. BOTTOM PLAYER NAME (Directly below circle)
                 SizedBox(height: 10),
                 Text(
                   "${game.players[0].name} : ${game.players[0].currentScore} pts",
@@ -385,8 +384,39 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
 
-            // 3. NEXT BAJI / NEXT TURN BUTTON OVERLAY
-            if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt)
+            // RE-DEAL / NEXT BAJI OVERLAY (Jab ek poori baji ke saare cards khatam ho jaate hain)
+            if (game.isDeckFinished && game.winnerName.isEmpty)
+              Container(
+                color: Colors.black87,
+                width: double.infinity,
+                height: double.infinity,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("🃏 Hand Completed! 🃏", style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 15),
+                    Text("Target Score abhi tak kisi ne hit nahi kiya.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    SizedBox(height: 25),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      ),
+                      icon: Icon(Icons.style, color: Colors.white),
+                      label: Text("START NEXT BAJI (RE-DEAL)", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        setState(() {
+                          game.dealNewDeck();
+                          cardsDealt = false;
+                        });
+                      },
+                    )
+                  ],
+                ),
+              ),
+
+            // PASS PHONE OVERLAY (Baji ke dauran turn badalne par)
+            if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt && !game.isDeckFinished)
               Container(
                 color: Colors.black87,
                 width: double.infinity,
@@ -405,7 +435,7 @@ class _GameScreenState extends State<GameScreen> {
                         backgroundColor: Colors.green,
                         padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       ),
-                      child: Text("NEXT BAJI / CONTINUE", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: Text("NEXT TURN / CONTINUE", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
                       onPressed: () => setState(() {
                         game.isCardHiddenForPass = false;
                         game.lastRoundWinnerMsg = "";
@@ -415,7 +445,7 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
 
-            // Match Winner Screen
+            // MATCH WINNER OVERLAY
             if (game.winnerName.isNotEmpty)
               Container(
                 color: Colors.black87,
