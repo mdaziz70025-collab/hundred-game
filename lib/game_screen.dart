@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Haptic feedback ke liye
 import 'game_models.dart';
 import 'game_logic.dart';
 
@@ -28,8 +29,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   late AnimationController _turnAnimationController;
   late Animation<double> _turnScaleAnimation;
-
-  // 3D Card Flip Animation Controller
   late AnimationController _flipController;
   late Animation<double> _flipAnimation;
 
@@ -52,7 +51,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       CurvedAnimation(parent: _turnAnimationController, curve: Curves.easeInOut),
     );
 
-    // Flip Animation Setup
     _flipController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 400),
@@ -70,6 +68,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _startDealingAnimation() async {
+    HapticFeedback.mediumImpact(); // Vibration on deal start
     setState(() {
       isDealing = true;
       cardsDealt = false;
@@ -89,6 +88,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     await Future.delayed(Duration(milliseconds: 200));
     if (mounted) {
+      HapticFeedback.heavyImpact();
       setState(() {
         isDealing = false;
         cardsDealt = true;
@@ -118,6 +118,49 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ) ?? false;
   }
 
+  // SCORE HISTORY DRAWER SHEET
+  void _showScoreHistoryDrawer() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Color(0xFF0F172A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(20),
+          height: 350,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("📊 Match Score History", style: TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.bold)),
+                  IconButton(icon: Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
+                ],
+              ),
+              Divider(color: Colors.white30),
+              Expanded(
+                child: game.roundHistoryList.isEmpty
+                    ? Center(child: Text("Abhi tak koi baji nahi kheli gayi.", style: TextStyle(color: Colors.white54)))
+                    : ListView.builder(
+                        itemCount: game.roundHistoryList.length,
+                        itemBuilder: (context, index) {
+                          var history = game.roundHistoryList[index];
+                          return ListTile(
+                            leading: CircleAvatar(backgroundColor: Colors.amber, child: Text("#${history.roundNumber}", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+                            title: Text("Winner: ${history.winnerName}", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            trailing: Text("+${history.points} pts", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 15)),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   String _getCardSuit(int value) {
     if (value >= 80) return "♥️";
     if (value >= 50) return "♠️";
@@ -129,7 +172,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return (suit == "♥️" || suit == "♦️") ? Colors.red.shade700 : Colors.black;
   }
 
-  // PLAYING CARD WITH 3D FLIP EFFECT
   Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
     bool isHighValue = value >= 80;
     String suit = _getCardSuit(value);
@@ -138,13 +180,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return AnimatedBuilder(
       animation: _flipAnimation,
       builder: (context, child) {
-        // 3D Rotation effect simulation using transform matrix
         double angle = _flipAnimation.value * 3.1416;
-        bool showBack = angle > 1.5708; // Halfway flip
+        bool showBack = angle > 1.5708;
 
         return Transform(
           transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.001) // perspective
+            ..setEntry(3, 2, 0.001)
             ..rotateY(angle),
           alignment: Alignment.center,
           child: showBack && _flipController.isAnimating
@@ -307,16 +348,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   Text("Round/Baji: #${game.totalRoundsPlayed}", style: TextStyle(color: Colors.amberAccent, fontSize: 11)),
                 ],
               ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.amber,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  "TARGET: ${widget.targetScore}",
-                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
-                ),
+              Row(
+                children: [
+                  // SCORE HISTORY BUTTON
+                  IconButton(
+                    icon: Icon(Icons.history, color: Colors.amber),
+                    onPressed: _showScoreHistoryDrawer,
+                    tooltip: "Score History",
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.amber,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "TARGET: ${widget.targetScore}",
+                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                    ),
+                  ),
+                ],
               )
             ],
           ),
@@ -344,7 +395,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
                 SizedBox(height: 15),
 
-                // CENTER ROW WITH 3D REALISTIC CASINO GREEN TABLE TEXTURE MAT
+                // CENTER ROW WITH REALISTIC CASINO GREEN TABLE
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -367,15 +418,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     else
                       SizedBox(width: 40),
 
-                    // REALISTIC CASINO GREEN FELT TABLE MAT
+                    // REALISTIC CASINO GREEN TABLE MAT
                     Container(
                       width: 175,
                       height: 175,
                       decoration: BoxDecoration(
                         gradient: RadialGradient(
                           colors: [
-                            Color(0xFF0F5132), // Rich Casino Green Center
-                            Color(0xFF06321D), // Darker Felt Border
+                            Color(0xFF0F5132),
+                            Color(0xFF06321D),
                           ],
                           radius: 0.8,
                         ),
@@ -485,8 +536,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                               return _buildPlayingCard(
                                 value: cardValue,
                                 onTap: () {
+                                  HapticFeedback.selectionClick(); // Haptic click vibration on play
                                   setState(() {
-                                    _flipController.forward(from: 0.0); // Trigger flip animation
+                                    _flipController.forward(from: 0.0);
                                     game.playCard(cardValue);
                                   });
                                 },
