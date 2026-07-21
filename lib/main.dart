@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _loadBannerAd() {
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // Google Test Banner ID
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111',
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(
@@ -213,7 +213,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // BANNER AD AT THE BOTTOM
             if (_isBannerAdLoaded && _bannerAd != null)
               Container(
                 width: _bannerAd!.size.width.toDouble(),
