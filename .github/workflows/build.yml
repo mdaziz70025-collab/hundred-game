@@ -28,7 +28,7 @@ jobs:
       - name: Re-create Android Project Safely
         run: |
           rm -rf android
-          flutter create --project-name hundred_game --force .
+          flutter create --project-name hundred_game --overwrite .
 
       - name: Get Dependencies
         run: flutter pub get
