@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'game_models.dart';
 import 'game_logic.dart';
 
@@ -36,6 +37,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _turnAnimationController;
   late Animation<double> _turnScaleAnimation;
 
+  // GOOGLE ADMOB VARIABLES
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+  InterstitialAd? _interstitialAd;
+
   @override
   void initState() {
     super.initState();
@@ -54,11 +60,57 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _turnScaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _turnAnimationController, curve: Curves.easeInOut),
     );
+
+    // LOAD ADS
+    _loadBannerAd();
+    _loadInterstitialAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // Test Banner ID
+      request: AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
+  void _loadInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: 'ca-app-pub-3940256099942544/1033173712', // Test Interstitial ID
+      request: AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          _interstitialAd = ad;
+        },
+        onAdFailedToLoad: (err) {
+          _interstitialAd = null;
+        },
+      ),
+    );
+  }
+
+  void _showInterstitialAd() {
+    if (_interstitialAd != null) {
+      _interstitialAd!.show();
+      _loadInterstitialAd(); // Reload for next round
+    }
   }
 
   @override
   void dispose() {
     _turnAnimationController.dispose();
+    _bannerAd?.dispose();
+    _interstitialAd?.dispose();
     super.dispose();
   }
 
@@ -150,6 +202,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       flyingCardValue = null;
       game.playCard(cardValue);
     });
+
+    if (game.winnerName.isNotEmpty) {
+      _showInterstitialAd(); // Show full screen ad on match victory
+    }
   }
 
   Future<bool> _showExitDialog() async {
@@ -351,14 +407,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return textWidget;
   }
 
-  // PLAYER HAND AREA DIRECTLY UNDER THEIR NAME (ACTIVE PLAYER = OPEN CARDS, OTHERS = HIDDEN)
   Widget _buildPlayerHandView(int playerIndex, {bool isVertical = false}) {
     if (!cardsDealt) return SizedBox.shrink();
 
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
 
-    // ONLY SHOW OPEN CARDS IF IT'S THIS PLAYER'S TURN
     if (isCurrentTurn) {
       if (isVertical) {
         return Column(
@@ -382,7 +436,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         );
       }
     } else {
-      // OTHERWISE KEEP CARDS FULLY HIDDEN (BACKFACE)
       if (isVertical) {
         return Column(
           children: List.generate(p.hand.length, (_) => _buildHiddenCard(isVertical: true)),
@@ -462,9 +515,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           children: [
             Column(
               children: [
-                SizedBox(height: 25),
+                SizedBox(height: 20),
 
-                // TOP PLAYER (PLAYER INDEX 2)
+                // TOP PLAYER
                 if (game.players.length >= 3)
                   Column(
                     children: [
@@ -474,13 +527,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     ],
                   ),
 
-                SizedBox(height: 20),
+                SizedBox(height: 15),
 
                 // CENTER ROW WITH CASINO MAT
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // LEFT PLAYER (PLAYER INDEX 3)
                     if (game.players.length == 4)
                       Padding(
                         padding: const EdgeInsets.only(left: 6.0),
@@ -495,10 +547,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     else
                       SizedBox(width: 40),
 
-                    // REALISTIC CASINO GREEN TABLE MAT
                     Container(
-                      width: 175,
-                      height: 175,
+                      width: 170,
+                      height: 170,
                       decoration: BoxDecoration(
                         gradient: RadialGradient(
                           colors: [
@@ -576,7 +627,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       ),
                     ),
 
-                    // RIGHT PLAYER (PLAYER INDEX 1)
                     if (game.players.length >= 2)
                       Padding(
                         padding: const EdgeInsets.only(right: 6.0),
@@ -593,73 +643,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ],
                 ),
 
-                SizedBox(height: 25),
+                SizedBox(height: 15),
 
-                // BOTTOM PLAYER (PLAYER INDEX 0)
+                // BOTTOM PLAYER
                 _buildPlayerLabel(game.players[0], 0),
-                SizedBox(height: 8),
+                SizedBox(height: 6),
                 _buildPlayerHandView(0),
 
                 Spacer(),
 
-                if (game.warningMsg.isNotEmpty)
+                // BANNER AD AT BOTTOM OF SCREEN
+                if (_isBannerAdLoaded && _bannerAd != null)
                   Container(
-                    color: Colors.redAccent,
-                    margin: EdgeInsets.only(bottom: 10),
-                    padding: EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-                    child: Text(game.warningMsg, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    width: _bannerAd!.size.width.toDouble(),
+                    height: _bannerAd!.size.height.toDouble(),
+                    child: AdWidget(ad: _bannerAd!),
                   ),
               ],
             ),
 
-            // FIRST TURN POPUP
-            if (game.showFirstTurnDialog && cardsDealt)
-              Container(
-                color: Colors.black54,
-                child: AlertDialog(
-                  title: Text("Lowest Card Rule"),
-                  content: Text(game.firstTurnNotice),
-                  actions: [
-                    ElevatedButton(
-                      child: Text("Start Turn"),
-                      onPressed: () => setState(() => game.showFirstTurnDialog = false),
-                    )
-                  ],
-                ),
-              ),
-
-            // RE-DEAL OVERLAY
-            if (game.isDeckFinished && game.winnerName.isEmpty && !isCardFlying)
-              Container(
-                color: Colors.black87,
-                width: double.infinity,
-                height: double.infinity,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("🃏 Hand Completed! 🃏", style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 15),
-                    Text("Target Score abhi tak kisi ne hit nahi kiya.", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    SizedBox(height: 25),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                      ),
-                      icon: Icon(Icons.style, color: Colors.white),
-                      label: Text("START NEXT BAJI (RE-DEAL)", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                      onPressed: () {
-                        setState(() {
-                          game.dealNewDeck();
-                          cardsDealt = false;
-                        });
-                      },
-                    )
-                  ],
-                ),
-              ),
-
-            // PASS PHONE OVERLAY (APPEARS BEFORE NEXT TURN TO HIDE CARDS)
+            // PASS PHONE OVERLAY
             if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt && !game.isDeckFinished && !isCardFlying)
               Container(
                 color: Colors.black87,
@@ -682,10 +685,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       ),
                       child: Text("NEXT TURN / CONTINUE", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                      onPressed: () => setState(() {
-                        game.isCardHiddenForPass = false;
-                        game.lastRoundWinnerMsg = "";
-                      }),
+                      onPressed: () {
+                        _showInterstitialAd(); // Show ad during turn pass
+                        setState(() {
+                          game.isCardHiddenForPass = false;
+                          game.lastRoundWinnerMsg = "";
+                        });
+                      },
                     )
                   ],
                 ),
