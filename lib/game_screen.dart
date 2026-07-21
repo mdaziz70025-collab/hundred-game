@@ -26,11 +26,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool isDealing = false;
   bool cardsDealt = false;
   
-  // Dealing Animation States
-  int currentlyDealingPlayerIndex = -1; // 0: Bottom, 1: Right, 2: Top, 3: Left
+  // SOUND & VIBRATION ON/OFF TOGGLE
+  bool isSoundEnabled = true;
+
+  int currentlyDealingPlayerIndex = -1;
   int currentDealingCardIndex = 0;
 
-  // Card Flying to Table Animation States
   bool isCardFlying = false;
   int? flyingCardValue;
 
@@ -63,9 +64,23 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // 1. ONE-BY-ONE CARD FLYING DEALING ANIMATION (Center to Players)
+  void _playSoundEffect() {
+    if (isSoundEnabled) {
+      SystemSound.play(SystemSoundType.click);
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  void _playHeavySoundEffect() {
+    if (isSoundEnabled) {
+      SystemSound.play(SystemSoundType.alert);
+      HapticFeedback.heavyImpact();
+    }
+  }
+
+  // 1. ONE-BY-ONE DEALING ANIMATION WITH SOUND
   void _startDealingAnimation() async {
-    HapticFeedback.mediumImpact();
+    _playHeavySoundEffect();
     setState(() {
       isDealing = true;
       cardsDealt = false;
@@ -74,7 +89,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     int cardsPerPlayer = (widget.totalPlayers == 2) ? 10 : (widget.totalPlayers == 3 ? 6 : 5);
 
-    // Round-robin one by one card distribution
     for (int c = 0; c < cardsPerPlayer; c++) {
       for (int p = 0; p < widget.totalPlayers; p++) {
         if (!mounted) return;
@@ -82,14 +96,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           currentlyDealingPlayerIndex = p;
           currentDealingCardIndex++;
         });
-        HapticFeedback.selectionClick();
-        await Future.delayed(Duration(milliseconds: 120)); // Speed of flying card
+        _playSoundEffect();
+        await Future.delayed(Duration(milliseconds: 120));
       }
     }
 
     await Future.delayed(Duration(milliseconds: 200));
     if (mounted) {
-      HapticFeedback.heavyImpact();
+      _playHeavySoundEffect();
       setState(() {
         isDealing = false;
         cardsDealt = true;
@@ -99,11 +113,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  // 2. SMOOTH CARD PLAY FLYING ANIMATION + DELAYED NEXT TURN (Hand to Center)
+  // 2. SMOOTH CARD PLAY FLYING ANIMATION WITH SOUND & DELAYED TURN
   void _handleCardTap(int cardValue) async {
     Player current = game.players[game.currentPlayerIndex];
     
-    // First round card rule checks
     if (game.isFirstRound) {
       if (current.hand.contains(5) && cardValue != 5) {
         setState(() => game.warningMsg = "Pehle 5 number card hi chalna hoga!");
@@ -115,7 +128,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
     }
 
-    // Must play higher card check
     if (game.currentRoundCards.isNotEmpty) {
       int highestOnTable = game.currentRoundCards.reduce((a, b) => a > b ? a : b);
       bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
@@ -125,21 +137,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
     }
 
-    HapticFeedback.selectionClick();
+    _playSoundEffect();
 
-    // Trigger Flying Animation to Table
     setState(() {
       isCardFlying = true;
       flyingCardValue = cardValue;
       game.warningMsg = "";
     });
 
-    // Wait for card animation to reach and land on center table
     await Future.delayed(Duration(milliseconds: 350));
 
     if (!mounted) return;
 
-    // Apply card play logic & show next turn after card lands
     setState(() {
       isCardFlying = false;
       flyingCardValue = null;
@@ -377,6 +386,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
               Row(
                 children: [
+                  // SOUND MUTE / UNMUTE BUTTON
+                  IconButton(
+                    icon: Icon(
+                      isSoundEnabled ? Icons.volume_up : Icons.volume_off,
+                      color: isSoundEnabled ? Colors.greenAccent : Colors.redAccent,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isSoundEnabled = !isSoundEnabled;
+                      });
+                    },
+                    tooltip: isSoundEnabled ? "Mute Sound" : "Unmute Sound",
+                  ),
                   IconButton(
                     icon: Icon(Icons.history, color: Colors.amber),
                     onPressed: _showScoreHistoryDrawer,
@@ -512,7 +534,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                                   ],
                                                 );
                                               }),
-                                              // Flying Card Animation Preview
                                               if (isCardFlying && flyingCardValue != null)
                                                 AnimatedScale(
                                                   scale: 1.1,
@@ -590,7 +611,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ],
             ),
 
-            // First Turn Notice Popup
+            // First Turn Popup
             if (game.showFirstTurnDialog && cardsDealt)
               Container(
                 color: Colors.black54,
@@ -637,7 +658,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
 
-            // PASS PHONE OVERLAY (Appears ONLY after Card Flying lands on Table)
+            // PASS PHONE OVERLAY
             if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt && !game.isDeckFinished && !isCardFlying)
               Container(
                 color: Colors.black87,
