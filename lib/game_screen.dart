@@ -25,7 +25,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   
   bool isDealing = false;
   bool cardsDealt = false;
-  int dealtCardsCount = 0;
+  
+  // Dealing Animation States
+  int currentlyDealingPlayerIndex = -1; // 0: Bottom, 1: Right, 2: Top, 3: Left
+  int currentDealingCardIndex = 0;
+
+  // Card Flying to Table Animation States
+  bool isCardFlying = false;
+  int? flyingCardValue;
 
   late AnimationController _turnAnimationController;
   late Animation<double> _turnScaleAnimation;
@@ -56,22 +63,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  // 1. ONE-BY-ONE CARD FLYING DEALING ANIMATION (Center to Players)
   void _startDealingAnimation() async {
     HapticFeedback.mediumImpact();
     setState(() {
       isDealing = true;
       cardsDealt = false;
-      dealtCardsCount = 0;
+      currentDealingCardIndex = 0;
     });
 
-    int totalCards = (widget.totalPlayers == 3) ? 18 : 20;
+    int cardsPerPlayer = (widget.totalPlayers == 2) ? 10 : (widget.totalPlayers == 3 ? 6 : 5);
 
-    for (int i = 0; i < totalCards; i++) {
-      await Future.delayed(Duration(milliseconds: 100)); 
-      if (mounted) {
+    // Round-robin one by one card distribution
+    for (int c = 0; c < cardsPerPlayer; c++) {
+      for (int p = 0; p < widget.totalPlayers; p++) {
+        if (!mounted) return;
         setState(() {
-          dealtCardsCount = i + 1;
+          currentlyDealingPlayerIndex = p;
+          currentDealingCardIndex++;
         });
+        HapticFeedback.selectionClick();
+        await Future.delayed(Duration(milliseconds: 120)); // Speed of flying card
       }
     }
 
@@ -81,9 +93,58 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       setState(() {
         isDealing = false;
         cardsDealt = true;
+        currentlyDealingPlayerIndex = -1;
         game.revealFirstTurnDialog();
       });
     }
+  }
+
+  // 2. SMOOTH CARD PLAY FLYING ANIMATION + DELAYED NEXT TURN (Hand to Center)
+  void _handleCardTap(int cardValue) async {
+    Player current = game.players[game.currentPlayerIndex];
+    
+    // First round card rule checks
+    if (game.isFirstRound) {
+      if (current.hand.contains(5) && cardValue != 5) {
+        setState(() => game.warningMsg = "Pehle 5 number card hi chalna hoga!");
+        return;
+      }
+      if (widget.totalPlayers == 3 && current.hand.contains(15) && cardValue != 15) {
+        setState(() => game.warningMsg = "Pehle 15 number card hi chalna hoga!");
+        return;
+      }
+    }
+
+    // Must play higher card check
+    if (game.currentRoundCards.isNotEmpty) {
+      int highestOnTable = game.currentRoundCards.reduce((a, b) => a > b ? a : b);
+      bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
+      if (hasHigherCard && cardValue < highestOnTable) {
+        setState(() => game.warningMsg = "Aapke paas $highestOnTable se bada card hai, chhota nahi chal sakte!");
+        return;
+      }
+    }
+
+    HapticFeedback.selectionClick();
+
+    // Trigger Flying Animation to Table
+    setState(() {
+      isCardFlying = true;
+      flyingCardValue = cardValue;
+      game.warningMsg = "";
+    });
+
+    // Wait for card animation to reach and land on center table
+    await Future.delayed(Duration(milliseconds: 350));
+
+    if (!mounted) return;
+
+    // Apply card play logic & show next turn after card lands
+    setState(() {
+      isCardFlying = false;
+      flyingCardValue = null;
+      game.playCard(cardValue);
+    });
   }
 
   Future<bool> _showExitDialog() async {
@@ -160,7 +221,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return (suit == "♥️" || suit == "♦️") ? Colors.red.shade700 : Colors.black;
   }
 
-  // FIXED PLAYING CARD (SEEDHA CARD WITH CORRECT NUMBERS)
   Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
     bool isHighValue = value >= 80;
     String suit = _getCardSuit(value);
@@ -228,16 +288,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildPlayerLabel(Player player, int playerIndex, {bool isRotated = false, int quarterTurns = 0}) {
     bool isCurrentTurn = cardsDealt && (game.currentPlayerIndex == playerIndex);
+    bool isReceivingCard = isDealing && (currentlyDealingPlayerIndex == playerIndex);
     int wins = game.playerWinsMap[player.name] ?? 0;
 
     Widget textWidget = Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isCurrentTurn ? Colors.green.shade700 : Colors.transparent,
+        color: isReceivingCard 
+            ? Colors.amber.shade800 
+            : (isCurrentTurn ? Colors.green.shade700 : Colors.transparent),
         borderRadius: BorderRadius.circular(8),
-        border: isCurrentTurn ? Border.all(color: Colors.amberAccent, width: 2) : null,
-        boxShadow: isCurrentTurn
-            ? [BoxShadow(color: Colors.greenAccent.withOpacity(0.6), blurRadius: 8, spreadRadius: 2)]
+        border: (isCurrentTurn || isReceivingCard) ? Border.all(color: Colors.amberAccent, width: 2) : null,
+        boxShadow: (isCurrentTurn || isReceivingCard)
+            ? [BoxShadow(color: Colors.amberAccent.withOpacity(0.6), blurRadius: 8, spreadRadius: 2)]
             : [],
       ),
       child: Column(
@@ -246,7 +309,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isCurrentTurn) ...[
+              if (isCurrentTurn || isReceivingCard) ...[
                 Container(
                   width: 8,
                   height: 8,
@@ -257,7 +320,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               Text(
                 "${player.name} : ${player.currentScore} pts",
                 style: TextStyle(
-                  color: isCurrentTurn ? Colors.white : Colors.amberAccent,
+                  color: (isCurrentTurn || isReceivingCard) ? Colors.white : Colors.amberAccent,
                   fontWeight: FontWeight.bold,
                   fontSize: isCurrentTurn ? 14 : 12,
                 ),
@@ -414,14 +477,23 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text("Dealing Fast...", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                                      Text("Dealing Cards...", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 13)),
                                       SizedBox(height: 6),
-                                      CircularProgressIndicator(color: Colors.amber),
+                                      Container(
+                                        width: 38,
+                                        height: 54,
+                                        decoration: BoxDecoration(
+                                          color: Colors.indigo.shade900,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: Colors.amber, width: 2),
+                                        ),
+                                        child: Center(child: Text("🎴", style: TextStyle(fontSize: 16))),
+                                      ),
                                       SizedBox(height: 6),
-                                      Text("$dealtCardsCount Cards", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                      Text("Card #$currentDealingCardIndex", style: TextStyle(color: Colors.white70, fontSize: 11)),
                                     ],
                                   )
-                                : game.currentRoundCards.isEmpty
+                                : (game.currentRoundCards.isEmpty && !isCardFlying)
                                     ? Text("Table Mat", style: TextStyle(color: Colors.white54, fontSize: 13))
                                     : Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
@@ -430,15 +502,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                             spacing: 4,
                                             runSpacing: 4,
                                             alignment: WrapAlignment.center,
-                                            children: List.generate(game.currentRoundCards.length, (index) {
-                                              return Column(
-                                                children: [
-                                                  _buildPlayingCard(value: game.currentRoundCards[index]),
-                                                  SizedBox(height: 2),
-                                                  Text(game.playedCardOwners[index], style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                                                ],
-                                              );
-                                            }),
+                                            children: [
+                                              ...List.generate(game.currentRoundCards.length, (index) {
+                                                return Column(
+                                                  children: [
+                                                    _buildPlayingCard(value: game.currentRoundCards[index]),
+                                                    SizedBox(height: 2),
+                                                    Text(game.playedCardOwners[index], style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                                  ],
+                                                );
+                                              }),
+                                              // Flying Card Animation Preview
+                                              if (isCardFlying && flyingCardValue != null)
+                                                AnimatedScale(
+                                                  scale: 1.1,
+                                                  duration: Duration(milliseconds: 300),
+                                                  child: _buildPlayingCard(value: flyingCardValue!),
+                                                ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -498,12 +579,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                             children: activePlayer.hand.map((cardValue) {
                               return _buildPlayingCard(
                                 value: cardValue,
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(() {
-                                    game.playCard(cardValue);
-                                  });
-                                },
+                                onTap: isCardFlying ? null : () => _handleCardTap(cardValue),
                               );
                             }).toList(),
                           ),
@@ -514,7 +590,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ],
             ),
 
-            // First Turn Popup
+            // First Turn Notice Popup
             if (game.showFirstTurnDialog && cardsDealt)
               Container(
                 color: Colors.black54,
@@ -531,7 +607,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
 
             // RE-DEAL OVERLAY
-            if (game.isDeckFinished && game.winnerName.isEmpty)
+            if (game.isDeckFinished && game.winnerName.isEmpty && !isCardFlying)
               Container(
                 color: Colors.black87,
                 width: double.infinity,
@@ -561,8 +637,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
 
-            // PASS PHONE OVERLAY
-            if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt && !game.isDeckFinished)
+            // PASS PHONE OVERLAY (Appears ONLY after Card Flying lands on Table)
+            if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt && !game.isDeckFinished && !isCardFlying)
               Container(
                 color: Colors.black87,
                 width: double.infinity,
@@ -592,7 +668,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
 
             // MATCH WINNER OVERLAY
-            if (game.winnerName.isNotEmpty)
+            if (game.winnerName.isNotEmpty && !isCardFlying)
               Container(
                 color: Colors.black87,
                 width: double.infinity,
