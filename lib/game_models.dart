@@ -6,6 +6,9 @@ class CardModel {
 
   CardModel({required this.number, required this.suit});
 
+  bool operator >(CardModel other) => number > other.number;
+  bool operator <(CardModel other) => number < other.number;
+
   Map<String, dynamic> toJson() => {
     'number': number,
     'suit': suit,
@@ -23,12 +26,15 @@ class Player {
   final String id;
   final String name;
   List<CardModel> hand;
-  int score;
+  int currentScore;
 
   Player({
     required this.id,
     required this.name,
     required this.hand,
-    this.score = 0,
+    this.currentScore = 0,
   });
+
+  int get score => currentScore;
+  set score(int val) => currentScore = val;
 }
