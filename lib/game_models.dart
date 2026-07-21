@@ -1,39 +1,34 @@
-enum GameMode { offline, online }
+enum GameMode { offline, vsComputer, online }
+
+class CardModel {
+  final int number;
+  final String suit;
+
+  CardModel({required this.number, required this.suit});
+
+  Map<String, dynamic> toJson() => {
+    'number': number,
+    'suit': suit,
+  };
+
+  factory CardModel.fromJson(Map<String, dynamic> json) {
+    return CardModel(
+      number: json['number'] as int,
+      suit: json['suit'] as String,
+    );
+  }
+}
 
 class Player {
   final String id;
-  String name;
-  String avatar;
-  List<int> hand;
-  int currentScore;
+  final String name;
+  List<CardModel> hand;
+  int score;
 
   Player({
     required this.id,
     required this.name,
-    this.avatar = "👑",
     required this.hand,
-    this.currentScore = 0,
+    this.score = 0,
   });
-}
-
-class UserProfile {
-  String name;
-  String avatar;
-  int totalMatches;
-  int totalWins;
-  int xp;
-  int level;
-  int highScore;
-
-  UserProfile({
-    this.name = "Guest Player",
-    this.avatar = "👑",
-    this.totalMatches = 0,
-    this.totalWins = 0,
-    this.xp = 0,
-    this.level = 1,
-    this.highScore = 0,
-  });
-
-  double get winRate => totalMatches > 0 ? ((totalWins / totalMatches) * 100) : 0.0;
 }
