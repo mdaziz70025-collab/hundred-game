@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'game_models.dart';
+import 'game_logic.dart';
 
 class GameScreen extends StatefulWidget {
   final GameMode mode;
@@ -22,61 +23,28 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late List<Player> players;
-  int currentPlayerIndex = 0;
-  List<CardModel> tableCards = [];
+  late GameLogic game;
 
   @override
   void initState() {
     super.initState();
-    _initializeGame();
-  }
-
-  void _initializeGame() {
-    List<String> suits = ['♠️', '♥️', '♦️', '♣️'];
-    int playerIndex = 0;
-    
-    players = List.generate(
-      widget.totalPlayers,
-      (i) => Player(
-        id: "p_$i",
-        name: widget.playerNames.length > i ? widget.playerNames[i] : "Player ${i + 1}",
-        hand: [],
-        currentScore: 0,
-      ),
+    game = GameLogic(
+      mode: widget.mode,
+      totalPlayers: widget.totalPlayers,
+      targetScore: widget.targetScore,
+      playerNames: widget.playerNames,
     );
-
-    int cardNum = 1;
-    while (cardNum <= 100) {
-      for (String suit in suits) {
-        if (cardNum > 100) break;
-        players[playerIndex].hand.add(CardModel(number: cardNum, suit: suit));
-        playerIndex = (playerIndex + 1) % widget.totalPlayers;
-        cardNum++;
-      }
-    }
-
-    for (var player in players) {
-      player.hand.sort((a, b) => a.number.compareTo(b.number));
-    }
   }
 
   void _playCard(CardModel card) {
     setState(() {
-      players[currentPlayerIndex].hand.removeWhere((c) => c.number == card.number);
-      tableCards.add(card);
-      
-      if (tableCards.length == widget.totalPlayers) {
-        tableCards.clear();
-      }
-      
-      currentPlayerIndex = (currentPlayerIndex + 1) % widget.totalPlayers;
+      game.playCard(card);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    Player current = players[currentPlayerIndex];
+    Player current = game.players[game.currentPlayerIndex];
 
     return Scaffold(
       appBar: AppBar(
@@ -87,13 +55,15 @@ class _GameScreenState extends State<GameScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Players Score Board
+            // Scoreboard
             Container(
               padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
               color: Color(0xFF0F172A),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: players.map((p) => Text("${p.name}: ${p.currentScore} pts", style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold))).toList(),
+                children: game.players
+                    .map((p) => Text("${p.name}: ${p.currentScore} pts", style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold)))
+                    .toList(),
               ),
             ),
 
@@ -101,8 +71,8 @@ class _GameScreenState extends State<GameScreen> {
             Expanded(
               child: Center(
                 child: Container(
-                  width: 250,
-                  height: 250,
+                  width: 260,
+                  height: 260,
                   decoration: BoxDecoration(
                     color: Color(0xFF155E75),
                     shape: BoxShape.circle,
@@ -111,14 +81,17 @@ class _GameScreenState extends State<GameScreen> {
                   child: Center(
                     child: Wrap(
                       spacing: 8,
-                      children: tableCards.map((c) => Chip(label: Text("${c.number} ${c.suit}", style: TextStyle(fontWeight: FontWeight.bold)))).toList(),
+                      children: game.tableCards
+                          .map((tc) => Chip(
+                                label: Text("${tc.card.number} ${tc.card.suit}", style: TextStyle(fontWeight: FontWeight.bold)),
+                              ))
+                          .toList(),
                     ),
                   ),
                 ),
               ),
             ),
 
-            // Active Player Turn Text
             Text("${current.name}'s Turn", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             SizedBox(height: 10),
 
