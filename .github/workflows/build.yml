@@ -30,10 +30,11 @@ jobs:
           rm -rf android
           flutter create --project-name hundred_game --platforms=android .
 
-      - name: Set minSdkVersion to 21 for Google Ads
+      - name: Fix MinSDK and Kotlin Version for Google Ads
         run: |
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
           sed -i 's/minSdkVersion 19/minSdkVersion 21/g' android/app/build.gradle
+          sed -i "s/ext.kotlin_version = .*/ext.kotlin_version = '1.9.20'/g" android/build.gradle
 
       - name: Get Dependencies
         run: flutter pub get
