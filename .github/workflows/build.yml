@@ -25,10 +25,10 @@ jobs:
           flutter-version: '3.19.x'
           channel: 'stable'
 
-      - name: Re-create Android Project with Valid Name
+      - name: Clean & Re-create Android Project
         run: |
           rm -rf android
-          flutter create --project-name hundred_game .
+          flutter create --project-name hundred_game --offline .
 
       - name: Get Dependencies
         run: flutter pub get
