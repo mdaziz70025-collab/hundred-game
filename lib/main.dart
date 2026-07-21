@@ -1,10 +1,17 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'game_models.dart';
 import 'game_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    print("Firebase init note: $e");
+  }
   MobileAds.instance.initialize();
   runApp(HundredGameApp());
 }
@@ -33,6 +40,8 @@ class _HomeScreenState extends State<HomeScreen> {
   GameMode selectedMode = GameMode.offline;
   int totalPlayers = 4;
   int targetScore = 500;
+  TextEditingController roomCodeController = TextEditingController();
+  TextEditingController myNameController = TextEditingController(text: "Player 1");
 
   List<TextEditingController> nameControllers = [
     TextEditingController(text: "Aziz"),
@@ -52,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _loadBannerAd() {
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // Test Banner Ad ID
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111',
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(
@@ -71,18 +80,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _bannerAd?.dispose();
+    roomCodeController.dispose();
+    myNameController.dispose();
     for (var controller in nameControllers) {
       controller.dispose();
     }
     super.dispose();
   }
 
-  void _updatePlayerControllers(int count) {
-    if (count > nameControllers.length) {
-      for (int i = nameControllers.length; i < count; i++) {
-        nameControllers.add(TextEditingController(text: "Player ${i + 1}"));
-      }
-    }
+  String _generateRoomCode() {
+    var rng = Random();
+    return (1000 + rng.nextInt(9000)).toString();
   }
 
   @override
@@ -102,88 +110,68 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text("Game Mode", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text("Select Game Mode", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
                     SizedBox(height: 8),
-                    Container(
-                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Color(0xFF0F172A),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.amberAccent, width: 1.5),
+                    SegmentedButton<GameMode>(
+                      segments: [
+                        ButtonSegment(value: GameMode.offline, label: Text("Offline")),
+                        ButtonSegment(value: GameMode.online, label: Text("Online 🌐")),
+                      ],
+                      selected: {selectedMode},
+                      onSelectionChanged: (newSelection) {
+                        setState(() {
+                          selectedMode = newSelection.first;
+                        });
+                      },
+                    ),
+
+                    SizedBox(height: 20),
+                    if (selectedMode == GameMode.online) ...[
+                      Text("Your Name", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      TextField(
+                        controller: myNameController,
+                        style: TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Color(0xFF0F172A),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.phone_android, color: Colors.amberAccent),
-                          SizedBox(width: 10),
-                          Text("Offline (Pass & Play)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ],
+                      SizedBox(height: 20),
+                      Text("Enter Room Code (If Joining)", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      TextField(
+                        controller: roomCodeController,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: Colors.white, letterSpacing: 3, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          hintText: "e.g. 4821",
+                          hintStyle: TextStyle(color: Colors.white38),
+                          filled: true,
+                          fillColor: Color(0xFF0F172A),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
                       ),
-                    ),
+                      SizedBox(height: 20),
+                    ] else ...[
+                      Text("Number of Players", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [2, 3, 4].map((count) {
+                          return ChoiceChip(
+                            label: Text("$count Players"),
+                            selected: totalPlayers == count,
+                            onSelected: (selected) {
+                              if (selected) setState(() => totalPlayers = count);
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(height: 20),
+                    ],
 
-                    SizedBox(height: 20),
-                    Text("Number of Players", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [2, 3, 4].map((count) {
-                        return ChoiceChip(
-                          label: Text("$count Players"),
-                          selected: totalPlayers == count,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() {
-                                totalPlayers = count;
-                                _updatePlayerControllers(count);
-                              });
-                            }
-                          },
-                        );
-                      }).toList(),
-                    ),
-
-                    SizedBox(height: 20),
-                    Text("Target Score", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [300, 500, 1000].map((score) {
-                        return ChoiceChip(
-                          label: Text("$score Pts"),
-                          selected: targetScore == score,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() {
-                                targetScore = score;
-                              });
-                            }
-                          },
-                        );
-                      }).toList(),
-                    ),
-
-                    SizedBox(height: 20),
-                    Text("Player Names", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    Column(
-                      children: List.generate(totalPlayers, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: TextField(
-                            controller: nameControllers[index],
-                            style: TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              labelText: "Player ${index + 1} Name",
-                              labelStyle: TextStyle(color: Colors.white70),
-                              filled: true,
-                              fillColor: Color(0xFF0F172A),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-
-                    SizedBox(height: 25),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,
@@ -191,12 +179,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text("START GAME", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        selectedMode == GameMode.online
+                            ? (roomCodeController.text.trim().isEmpty ? "CREATE ROOM & PLAY" : "JOIN ROOM & PLAY")
+                            : "START GAME",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
                       onPressed: () {
-                        List<String> names = List.generate(
-                          totalPlayers,
-                          (i) => nameControllers[i].text.trim().isEmpty ? "Player ${i + 1}" : nameControllers[i].text.trim(),
-                        );
+                        String code = roomCodeController.text.trim().isEmpty ? _generateRoomCode() : roomCodeController.text.trim();
+                        List<String> names = selectedMode == GameMode.online
+                            ? [myNameController.text.trim().isEmpty ? "Player 1" : myNameController.text.trim()]
+                            : List.generate(totalPlayers, (i) => nameControllers[i].text.trim().isEmpty ? "Player ${i + 1}" : nameControllers[i].text.trim());
 
                         Navigator.push(
                           context,
@@ -206,6 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               totalPlayers: totalPlayers,
                               targetScore: targetScore,
                               playerNames: names,
+                              roomCode: code,
                             ),
                           ),
                         );
@@ -216,7 +210,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // BANNER AD AT THE BOTTOM
             if (_isBannerAdLoaded && _bannerAd != null)
               Container(
                 width: _bannerAd!.size.width.toDouble(),
