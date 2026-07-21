@@ -30,21 +30,20 @@ jobs:
           rm -rf android
           flutter create --project-name hundred_game --platforms=android .
 
-      - name: Fix MinSDK and Upgrade Kotlin Version
+      - name: Fix TargetSDK, MinSDK & AdMob Manifest
         run: |
-          # Set MinSDK to 21 for Google Ads
+          # Set MinSDK 21 & TargetSDK 34
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
-          sed -i 's/minSdkVersion 19/minSdkVersion 21/g' android/app/build.gradle
-
-          # Upgrade Kotlin version in settings.gradle (Flutter 3.19+ default)
+          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' android/app/build.gradle
+          
+          # Upgrade Kotlin version
           if [ -f "android/settings.gradle" ]; then
             sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.20"/g' android/settings.gradle
           fi
 
-          # Upgrade Kotlin version in build.gradle (Fallback for legacy syntax)
-          if [ -f "android/build.gradle" ]; then
-            sed -i "s/ext.kotlin_version = .*/ext.kotlin_version = '1.9.20'/g" android/build.gradle
-          fi
+          # Inject Google AdMob Test App ID into AndroidManifest to prevent crashes
+          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          sed -i '/<\/application>/i \        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3940256099942544~3347511713"\/>' $MANIFEST_PATH
 
       - name: Get Dependencies
         run: flutter pub get
