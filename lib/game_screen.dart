@@ -25,8 +25,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   
   bool isDealing = false;
   bool cardsDealt = false;
-  
-  // SOUND & VIBRATION ON/OFF TOGGLE
   bool isSoundEnabled = true;
 
   int currentlyDealingPlayerIndex = -1;
@@ -64,21 +62,21 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  // SOUND AND SPEAKER FEEDBACK
   void _playSoundEffect() {
     if (isSoundEnabled) {
+      HapticFeedback.lightImpact();
       SystemSound.play(SystemSoundType.click);
-      HapticFeedback.selectionClick();
     }
   }
 
   void _playHeavySoundEffect() {
     if (isSoundEnabled) {
+      HapticFeedback.vibrate();
       SystemSound.play(SystemSoundType.alert);
-      HapticFeedback.heavyImpact();
     }
   }
 
-  // 1. ONE-BY-ONE DEALING ANIMATION WITH SOUND
   void _startDealingAnimation() async {
     _playHeavySoundEffect();
     setState(() {
@@ -113,7 +111,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  // 2. SMOOTH CARD PLAY FLYING ANIMATION WITH SOUND & DELAYED TURN
   void _handleCardTap(int cardValue) async {
     Player current = game.players[game.currentPlayerIndex];
     
@@ -386,7 +383,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
               Row(
                 children: [
-                  // SOUND MUTE / UNMUTE BUTTON
                   IconButton(
                     icon: Icon(
                       isSoundEnabled ? Icons.volume_up : Icons.volume_off,
