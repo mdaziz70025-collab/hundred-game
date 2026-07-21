@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'game_models.dart';
 
 class TableCard {
@@ -30,6 +31,24 @@ class GameLogic {
 
   void _startNewRound() {
     List<String> suits = ['♠️', '♥️', '♦️', '♣️'];
+    Random rng = Random();
+
+    // Deck: Multiples of 5 (5 to 100)
+    List<CardModel> fullDeck = [];
+    int startVal = (totalPlayers == 3) ? 15 : 5;
+
+    for (int v = startVal; v <= 100; v += 5) {
+      String suit = suits[rng.nextInt(suits.length)];
+      fullDeck.add(CardModel(number: v, suit: suit));
+    }
+
+    fullDeck.shuffle(rng);
+
+    // Cards per player distribution
+    int cardsPerPlayer = 5;
+    if (totalPlayers == 2) cardsPerPlayer = 10;
+    if (totalPlayers == 3) cardsPerPlayer = 6;
+
     players = List.generate(
       totalPlayers,
       (i) => Player(
@@ -40,21 +59,36 @@ class GameLogic {
       ),
     );
 
-    int cardNum = 1;
-    int pIdx = 0;
-    while (cardNum <= 100) {
-      for (String suit in suits) {
-        if (cardNum > 100) break;
-        players[pIdx].hand.add(CardModel(number: cardNum, suit: suit));
-        pIdx = (pIdx + 1) % totalPlayers;
-        cardNum++;
+    int cardIndex = 0;
+    for (int i = 0; i < totalPlayers; i++) {
+      for (int c = 0; c < cardsPerPlayer; c++) {
+        if (cardIndex < fullDeck.length) {
+          players[i].hand.add(fullDeck[cardIndex++]);
+        }
       }
+      players[i].hand.sort((a, b) => a.number.compareTo(b.number));
     }
 
-    for (var player in players) {
-      player.hand.sort((a, b) => a.number.compareTo(b.number));
+    // Starting player decision (Holding '5' or '15')
+    int startingPlayer = 0;
+    int lowestFound = 999;
+    int targetOpeningCard = (totalPlayers == 3) ? 15 : 5;
+
+    for (int i = 0; i < totalPlayers; i++) {
+      for (var card in players[i].hand) {
+        if (card.number == targetOpeningCard) {
+          startingPlayer = i;
+          lowestFound = card.number;
+          break;
+        } else if (card.number < lowestFound) {
+          lowestFound = card.number;
+          startingPlayer = i;
+        }
+      }
+      if (lowestFound == targetOpeningCard) break;
     }
 
+    currentPlayerIndex = startingPlayer;
     tableCards.clear();
   }
 
@@ -89,7 +123,11 @@ class GameLogic {
       winnerName = players[winnerIdx].name;
     } else {
       tableCards.clear();
-      currentPlayerIndex = winnerIdx;
+      if (players.any((p) => p.hand.isEmpty)) {
+        _startNewRound();
+      } else {
+        currentPlayerIndex = winnerIdx;
+      }
     }
   }
 }
