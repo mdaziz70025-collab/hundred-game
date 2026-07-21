@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'game_models.dart';
 import 'game_logic.dart';
 
@@ -26,21 +25,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   
   bool isDealing = false;
   bool cardsDealt = false;
-  bool isSoundEnabled = true;
-
-  int currentlyDealingPlayerIndex = -1;
-  int currentDealingCardIndex = 0;
-
-  bool isCardFlying = false;
-  int? flyingCardValue;
+  int dealtCardsCount = 0;
 
   late AnimationController _turnAnimationController;
   late Animation<double> _turnScaleAnimation;
-
-  // GOOGLE ADMOB VARIABLES
-  BannerAd? _bannerAd;
-  bool _isBannerAdLoaded = false;
-  InterstitialAd? _interstitialAd;
 
   @override
   void initState() {
@@ -60,151 +48,41 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _turnScaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _turnAnimationController, curve: Curves.easeInOut),
     );
-
-    // LOAD ADS
-    _loadBannerAd();
-    _loadInterstitialAd();
-  }
-
-  void _loadBannerAd() {
-    _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // Test Banner ID
-      request: AdRequest(),
-      size: AdSize.banner,
-      listener: BannerAdListener(
-        onAdLoaded: (_) {
-          setState(() {
-            _isBannerAdLoaded = true;
-          });
-        },
-        onAdFailedToLoad: (ad, err) {
-          ad.dispose();
-        },
-      ),
-    )..load();
-  }
-
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: 'ca-app-pub-3940256099942544/1033173712', // Test Interstitial ID
-      request: AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          _interstitialAd = ad;
-        },
-        onAdFailedToLoad: (err) {
-          _interstitialAd = null;
-        },
-      ),
-    );
-  }
-
-  void _showInterstitialAd() {
-    if (_interstitialAd != null) {
-      _interstitialAd!.show();
-      _loadInterstitialAd(); // Reload for next round
-    }
   }
 
   @override
   void dispose() {
     _turnAnimationController.dispose();
-    _bannerAd?.dispose();
-    _interstitialAd?.dispose();
     super.dispose();
   }
 
-  void _playSoundEffect() {
-    if (isSoundEnabled) {
-      HapticFeedback.lightImpact();
-      SystemSound.play(SystemSoundType.click);
-    }
-  }
-
-  void _playHeavySoundEffect() {
-    if (isSoundEnabled) {
-      HapticFeedback.vibrate();
-      SystemSound.play(SystemSoundType.alert);
-    }
-  }
-
   void _startDealingAnimation() async {
-    _playHeavySoundEffect();
+    HapticFeedback.mediumImpact();
     setState(() {
       isDealing = true;
       cardsDealt = false;
-      currentDealingCardIndex = 0;
+      dealtCardsCount = 0;
     });
 
-    int cardsPerPlayer = (widget.totalPlayers == 2) ? 10 : (widget.totalPlayers == 3 ? 6 : 5);
+    int totalCards = (widget.totalPlayers == 3) ? 18 : 20;
 
-    for (int c = 0; c < cardsPerPlayer; c++) {
-      for (int p = 0; p < widget.totalPlayers; p++) {
-        if (!mounted) return;
+    for (int i = 0; i < totalCards; i++) {
+      await Future.delayed(Duration(milliseconds: 100)); 
+      if (mounted) {
         setState(() {
-          currentlyDealingPlayerIndex = p;
-          currentDealingCardIndex++;
+          dealtCardsCount = i + 1;
         });
-        _playSoundEffect();
-        await Future.delayed(Duration(milliseconds: 120));
       }
     }
 
     await Future.delayed(Duration(milliseconds: 200));
     if (mounted) {
-      _playHeavySoundEffect();
+      HapticFeedback.heavyImpact();
       setState(() {
         isDealing = false;
         cardsDealt = true;
-        currentlyDealingPlayerIndex = -1;
         game.revealFirstTurnDialog();
       });
-    }
-  }
-
-  void _handleCardTap(int cardValue) async {
-    Player current = game.players[game.currentPlayerIndex];
-    
-    if (game.isFirstRound) {
-      if (current.hand.contains(5) && cardValue != 5) {
-        setState(() => game.warningMsg = "Pehle 5 number card hi chalna hoga!");
-        return;
-      }
-      if (widget.totalPlayers == 3 && current.hand.contains(15) && cardValue != 15) {
-        setState(() => game.warningMsg = "Pehle 15 number card hi chalna hoga!");
-        return;
-      }
-    }
-
-    if (game.currentRoundCards.isNotEmpty) {
-      int highestOnTable = game.currentRoundCards.reduce((a, b) => a > b ? a : b);
-      bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
-      if (hasHigherCard && cardValue < highestOnTable) {
-        setState(() => game.warningMsg = "Aapke paas $highestOnTable se bada card hai, chhota nahi chal sakte!");
-        return;
-      }
-    }
-
-    _playSoundEffect();
-
-    setState(() {
-      isCardFlying = true;
-      flyingCardValue = cardValue;
-      game.warningMsg = "";
-    });
-
-    await Future.delayed(Duration(milliseconds: 350));
-
-    if (!mounted) return;
-
-    setState(() {
-      isCardFlying = false;
-      flyingCardValue = null;
-      game.playCard(cardValue);
-    });
-
-    if (game.winnerName.isNotEmpty) {
-      _showInterstitialAd(); // Show full screen ad on match victory
     }
   }
 
@@ -282,6 +160,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return (suit == "♥️" || suit == "♦️") ? Colors.red.shade700 : Colors.black;
   }
 
+  // FIXED SEEDHA CARD UI
   Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
     bool isHighValue = value >= 80;
     String suit = _getCardSuit(value);
@@ -290,22 +169,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 46,
-        height: 68,
-        margin: EdgeInsets.symmetric(horizontal: 2),
+        width: 52,
+        height: 76,
+        margin: EdgeInsets.symmetric(horizontal: 3),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isHighValue ? Colors.amber.shade600 : Colors.blueGrey.shade300,
-            width: isHighValue ? 2 : 1,
+            width: isHighValue ? 2.5 : 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: isHighValue ? Colors.amber.withOpacity(0.4) : Colors.black38,
-              blurRadius: isHighValue ? 6 : 3,
-              spreadRadius: 1,
-              offset: Offset(1, 2),
+              color: isHighValue ? Colors.amber.withOpacity(0.5) : Colors.black38,
+              blurRadius: isHighValue ? 8 : 4,
+              spreadRadius: isHighValue ? 1 : 0,
+              offset: Offset(2, 3),
             )
           ],
         ),
@@ -315,16 +194,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Align(
               alignment: Alignment.topLeft,
               child: Padding(
-                padding: const EdgeInsets.only(left: 3.0, top: 2.0),
-                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
+                padding: const EdgeInsets.only(left: 4.0, top: 3.0),
+                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: suitColor)),
               ),
             ),
-            Text(suit, style: TextStyle(fontSize: 16, color: suitColor)),
+            Text(suit, style: TextStyle(fontSize: 18, color: suitColor)),
             Align(
               alignment: Alignment.bottomRight,
               child: Padding(
-                padding: const EdgeInsets.only(right: 3.0, bottom: 2.0),
-                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
+                padding: const EdgeInsets.only(right: 4.0, bottom: 3.0),
+                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: suitColor)),
               ),
             ),
           ],
@@ -335,33 +214,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildHiddenCard({bool isVertical = false}) {
     return Container(
-      width: isVertical ? 22 : 30,
-      height: isVertical ? 34 : 22,
+      width: isVertical ? 22 : 32,
+      height: isVertical ? 36 : 24,
       margin: EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: Colors.indigo.shade900,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white70, width: 1),
       ),
-      child: Center(child: Text("🎴", style: TextStyle(fontSize: 8))),
+      child: Center(child: Text("🎴", style: TextStyle(fontSize: 9))),
     );
   }
 
   Widget _buildPlayerLabel(Player player, int playerIndex, {bool isRotated = false, int quarterTurns = 0}) {
     bool isCurrentTurn = cardsDealt && (game.currentPlayerIndex == playerIndex);
-    bool isReceivingCard = isDealing && (currentlyDealingPlayerIndex == playerIndex);
     int wins = game.playerWinsMap[player.name] ?? 0;
 
     Widget textWidget = Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isReceivingCard 
-            ? Colors.amber.shade800 
-            : (isCurrentTurn ? Colors.green.shade700 : Colors.transparent),
+        color: isCurrentTurn ? Colors.green.shade700 : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
-        border: (isCurrentTurn || isReceivingCard) ? Border.all(color: Colors.amberAccent, width: 2) : null,
-        boxShadow: (isCurrentTurn || isReceivingCard)
-            ? [BoxShadow(color: Colors.amberAccent.withOpacity(0.6), blurRadius: 8, spreadRadius: 2)]
+        border: isCurrentTurn ? Border.all(color: Colors.amberAccent, width: 2) : null,
+        boxShadow: isCurrentTurn
+            ? [BoxShadow(color: Colors.greenAccent.withOpacity(0.6), blurRadius: 8, spreadRadius: 2)]
             : [],
       ),
       child: Column(
@@ -370,7 +246,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isCurrentTurn || isReceivingCard) ...[
+              if (isCurrentTurn) ...[
                 Container(
                   width: 8,
                   height: 8,
@@ -381,16 +257,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               Text(
                 "${player.name} : ${player.currentScore} pts",
                 style: TextStyle(
-                  color: (isCurrentTurn || isReceivingCard) ? Colors.white : Colors.amberAccent,
+                  color: isCurrentTurn ? Colors.white : Colors.amberAccent,
                   fontWeight: FontWeight.bold,
-                  fontSize: isCurrentTurn ? 13 : 11,
+                  fontSize: isCurrentTurn ? 14 : 12,
                 ),
               ),
             ],
           ),
           Text(
             "👑 Wins: $wins",
-            style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -405,48 +281,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
 
     return textWidget;
-  }
-
-  Widget _buildPlayerHandView(int playerIndex, {bool isVertical = false}) {
-    if (!cardsDealt) return SizedBox.shrink();
-
-    Player p = game.players[playerIndex];
-    bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
-
-    if (isCurrentTurn) {
-      if (isVertical) {
-        return Column(
-          children: List.generate(p.hand.length, (i) => _buildPlayingCard(
-            value: p.hand[i],
-            onTap: isCardFlying ? null : () => _handleCardTap(p.hand[i]),
-          )),
-        );
-      } else {
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: p.hand.map((cardValue) {
-              return _buildPlayingCard(
-                value: cardValue,
-                onTap: isCardFlying ? null : () => _handleCardTap(cardValue),
-              );
-            }).toList(),
-          ),
-        );
-      }
-    } else {
-      if (isVertical) {
-        return Column(
-          children: List.generate(p.hand.length, (_) => _buildHiddenCard(isVertical: true)),
-        );
-      } else {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(p.hand.length, (_) => _buildHiddenCard()),
-        );
-      }
-    }
   }
 
   @override
@@ -481,19 +315,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               Row(
                 children: [
                   IconButton(
-                    icon: Icon(
-                      isSoundEnabled ? Icons.volume_up : Icons.volume_off,
-                      color: isSoundEnabled ? Colors.greenAccent : Colors.redAccent,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isSoundEnabled = !isSoundEnabled;
-                      });
-                    },
-                  ),
-                  IconButton(
                     icon: Icon(Icons.history, color: Colors.amber),
                     onPressed: _showScoreHistoryDrawer,
+                    tooltip: "Score History",
                   ),
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -515,41 +339,52 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           children: [
             Column(
               children: [
-                SizedBox(height: 20),
+                SizedBox(height: 10),
 
                 // TOP PLAYER
                 if (game.players.length >= 3)
                   Column(
                     children: [
                       _buildPlayerLabel(game.players[2], 2),
-                      SizedBox(height: 6),
-                      _buildPlayerHandView(2),
+                      SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: cardsDealt 
+                            ? List.generate(game.players[2].hand.length, (_) => _buildHiddenCard())
+                            : [],
+                      ),
                     ],
                   ),
 
                 SizedBox(height: 15),
 
-                // CENTER ROW WITH CASINO MAT
+                // CENTER ROW WITH REALISTIC CASINO GREEN TABLE
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // LEFT PLAYER
                     if (game.players.length == 4)
                       Padding(
                         padding: const EdgeInsets.only(left: 6.0),
                         child: Column(
                           children: [
                             _buildPlayerLabel(game.players[3], 3, isRotated: true, quarterTurns: 1),
-                            SizedBox(height: 6),
-                            _buildPlayerHandView(3, isVertical: true),
+                            SizedBox(height: 5),
+                            Column(
+                              children: cardsDealt 
+                                  ? List.generate(game.players[3].hand.length, (_) => _buildHiddenCard(isVertical: true))
+                                  : [],
+                            ),
                           ],
                         ),
                       )
                     else
                       SizedBox(width: 40),
 
+                    // REALISTIC CASINO GREEN TABLE MAT
                     Container(
-                      width: 170,
-                      height: 170,
+                      width: 175,
+                      height: 175,
                       decoration: BoxDecoration(
                         gradient: RadialGradient(
                           colors: [
@@ -579,23 +414,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text("Dealing Cards...", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 13)),
+                                      Text("Dealing Fast...", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
                                       SizedBox(height: 6),
-                                      Container(
-                                        width: 38,
-                                        height: 54,
-                                        decoration: BoxDecoration(
-                                          color: Colors.indigo.shade900,
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: Colors.amber, width: 2),
-                                        ),
-                                        child: Center(child: Text("🎴", style: TextStyle(fontSize: 16))),
-                                      ),
+                                      CircularProgressIndicator(color: Colors.amber),
                                       SizedBox(height: 6),
-                                      Text("Card #$currentDealingCardIndex", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                      Text("$dealtCardsCount Cards", style: TextStyle(color: Colors.white70, fontSize: 11)),
                                     ],
                                   )
-                                : (game.currentRoundCards.isEmpty && !isCardFlying)
+                                : game.currentRoundCards.isEmpty
                                     ? Text("Table Mat", style: TextStyle(color: Colors.white54, fontSize: 13))
                                     : Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
@@ -604,37 +430,34 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                             spacing: 4,
                                             runSpacing: 4,
                                             alignment: WrapAlignment.center,
-                                            children: [
-                                              ...List.generate(game.currentRoundCards.length, (index) {
-                                                return Column(
-                                                  children: [
-                                                    _buildPlayingCard(value: game.currentRoundCards[index]),
-                                                    SizedBox(height: 2),
-                                                    Text(game.playedCardOwners[index], style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                                                  ],
-                                                );
-                                              }),
-                                              if (isCardFlying && flyingCardValue != null)
-                                                AnimatedScale(
-                                                  scale: 1.1,
-                                                  duration: Duration(milliseconds: 300),
-                                                  child: _buildPlayingCard(value: flyingCardValue!),
-                                                ),
-                                            ],
+                                            children: List.generate(game.currentRoundCards.length, (index) {
+                                              return Column(
+                                                children: [
+                                                  _buildPlayingCard(value: game.currentRoundCards[index]),
+                                                  SizedBox(height: 2),
+                                                  Text(game.playedCardOwners[index], style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                                ],
+                                              );
+                                            }),
                                           ),
                                         ],
                                       ),
                       ),
                     ),
 
+                    // RIGHT PLAYER
                     if (game.players.length >= 2)
                       Padding(
                         padding: const EdgeInsets.only(right: 6.0),
                         child: Column(
                           children: [
                             _buildPlayerLabel(game.players[1], 1, isRotated: true, quarterTurns: 3),
-                            SizedBox(height: 6),
-                            _buildPlayerHandView(1, isVertical: true),
+                            SizedBox(height: 5),
+                            Column(
+                              children: cardsDealt 
+                                  ? List.generate(game.players[1].hand.length, (_) => _buildHiddenCard(isVertical: true))
+                                  : [],
+                            ),
                           ],
                         ),
                       )
@@ -643,27 +466,103 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ],
                 ),
 
-                SizedBox(height: 15),
-
-                // BOTTOM PLAYER
+                SizedBox(height: 10),
                 _buildPlayerLabel(game.players[0], 0),
-                SizedBox(height: 6),
-                _buildPlayerHandView(0),
 
                 Spacer(),
 
-                // BANNER AD AT BOTTOM OF SCREEN
-                if (_isBannerAdLoaded && _bannerAd != null)
+                if (game.warningMsg.isNotEmpty)
                   Container(
-                    width: _bannerAd!.size.width.toDouble(),
-                    height: _bannerAd!.size.height.toDouble(),
-                    child: AdWidget(ad: _bannerAd!),
+                    color: Colors.redAccent,
+                    padding: EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                    child: Text(game.warningMsg, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+
+                // BOTTOM PLAYER HAND AREA
+                if (cardsDealt)
+                  Container(
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF0F172A),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Column(
+                      children: [
+                        Text("Turn: ${activePlayer.name}", 
+                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 10),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: activePlayer.hand.map((cardValue) {
+                              return _buildPlayingCard(
+                                value: cardValue,
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(() {
+                                    game.playCard(cardValue);
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
               ],
             ),
 
+            // First Turn Popup
+            if (game.showFirstTurnDialog && cardsDealt)
+              Container(
+                color: Colors.black54,
+                child: AlertDialog(
+                  title: Text("Lowest Card Rule"),
+                  content: Text(game.firstTurnNotice),
+                  actions: [
+                    ElevatedButton(
+                      child: Text("Start Turn"),
+                      onPressed: () => setState(() => game.showFirstTurnDialog = false),
+                    )
+                  ],
+                ),
+              ),
+
+            // RE-DEAL OVERLAY
+            if (game.isDeckFinished && game.winnerName.isEmpty)
+              Container(
+                color: Colors.black87,
+                width: double.infinity,
+                height: double.infinity,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("🃏 Hand Completed! 🃏", style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 15),
+                    Text("Target Score abhi tak kisi ne hit nahi kiya.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    SizedBox(height: 25),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      ),
+                      icon: Icon(Icons.style, color: Colors.white),
+                      label: Text("START NEXT BAJI (RE-DEAL)", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        setState(() {
+                          game.dealNewDeck();
+                          cardsDealt = false;
+                        });
+                      },
+                    )
+                  ],
+                ),
+              ),
+
             // PASS PHONE OVERLAY
-            if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt && !game.isDeckFinished && !isCardFlying)
+            if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt && !game.isDeckFinished)
               Container(
                 color: Colors.black87,
                 width: double.infinity,
@@ -675,9 +574,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       Text(game.lastRoundWinnerMsg, style: TextStyle(color: Colors.amber, fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                       SizedBox(height: 25),
                     ],
-                    Text("Pass Phone to:", style: TextStyle(color: Colors.white70, fontSize: 16)),
-                    SizedBox(height: 6),
-                    Text("Turn: ${activePlayer.name}", textAlign: TextAlign.center, style: TextStyle(color: Colors.amberAccent, fontSize: 28, fontWeight: FontWeight.bold)),
+                    Text("Turn: ${activePlayer.name}", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
                     SizedBox(height: 30),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -685,20 +582,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       ),
                       child: Text("NEXT TURN / CONTINUE", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                      onPressed: () {
-                        _showInterstitialAd(); // Show ad during turn pass
-                        setState(() {
-                          game.isCardHiddenForPass = false;
-                          game.lastRoundWinnerMsg = "";
-                        });
-                      },
+                      onPressed: () => setState(() {
+                        game.isCardHiddenForPass = false;
+                        game.lastRoundWinnerMsg = "";
+                      }),
                     )
                   ],
                 ),
               ),
 
             // MATCH WINNER OVERLAY
-            if (game.winnerName.isNotEmpty && !isCardFlying)
+            if (game.winnerName.isNotEmpty)
               Container(
                 color: Colors.black87,
                 width: double.infinity,
