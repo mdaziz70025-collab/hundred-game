@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _loadBannerAd() {
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // Test Banner Ad ID
       size: AdSize.banner,
       request: AdRequest(),
       listener: BannerAdListener(
@@ -102,19 +102,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text("Select Game Mode", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text("Game Mode", style: TextStyle(color: Colors.amberAccent, fontSize: 16, fontWeight: FontWeight.bold)),
                     SizedBox(height: 8),
-                    SegmentedButton<GameMode>(
-                      segments: [
-                        ButtonSegment(value: GameMode.offline, label: Text("Offline (Pass & Play)")),
-                        ButtonSegment(value: GameMode.vsComputer, label: Text("VS Computer")),
-                      ],
-                      selected: {selectedMode},
-                      onSelectionChanged: (newSelection) {
-                        setState(() {
-                          selectedMode = newSelection.first;
-                        });
-                      },
+                    Container(
+                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.amberAccent, width: 1.5),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.phone_android, color: Colors.amberAccent),
+                          SizedBox(width: 10),
+                          Text("Offline (Pass & Play)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ],
+                      ),
                     ),
 
                     SizedBox(height: 20),
@@ -213,6 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
+            // BANNER AD AT THE BOTTOM
             if (_isBannerAdLoaded && _bannerAd != null)
               Container(
                 width: _bannerAd!.size.width.toDouble(),
