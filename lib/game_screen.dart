@@ -62,7 +62,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // SOUND AND SPEAKER FEEDBACK
   void _playSoundEffect() {
     if (isSoundEnabled) {
       HapticFeedback.lightImpact();
@@ -235,22 +234,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 52,
-        height: 76,
-        margin: EdgeInsets.symmetric(horizontal: 3),
+        width: 46,
+        height: 68,
+        margin: EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: isHighValue ? Colors.amber.shade600 : Colors.blueGrey.shade300,
-            width: isHighValue ? 2.5 : 1.5,
+            width: isHighValue ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: isHighValue ? Colors.amber.withOpacity(0.5) : Colors.black38,
-              blurRadius: isHighValue ? 8 : 4,
-              spreadRadius: isHighValue ? 1 : 0,
-              offset: Offset(2, 3),
+              color: isHighValue ? Colors.amber.withOpacity(0.4) : Colors.black38,
+              blurRadius: isHighValue ? 6 : 3,
+              spreadRadius: 1,
+              offset: Offset(1, 2),
             )
           ],
         ),
@@ -260,16 +259,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Align(
               alignment: Alignment.topLeft,
               child: Padding(
-                padding: const EdgeInsets.only(left: 4.0, top: 3.0),
-                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: suitColor)),
+                padding: const EdgeInsets.only(left: 3.0, top: 2.0),
+                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
               ),
             ),
-            Text(suit, style: TextStyle(fontSize: 18, color: suitColor)),
+            Text(suit, style: TextStyle(fontSize: 16, color: suitColor)),
             Align(
               alignment: Alignment.bottomRight,
               child: Padding(
-                padding: const EdgeInsets.only(right: 4.0, bottom: 3.0),
-                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: suitColor)),
+                padding: const EdgeInsets.only(right: 3.0, bottom: 2.0),
+                child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
               ),
             ),
           ],
@@ -280,15 +279,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildHiddenCard({bool isVertical = false}) {
     return Container(
-      width: isVertical ? 22 : 32,
-      height: isVertical ? 36 : 24,
+      width: isVertical ? 22 : 30,
+      height: isVertical ? 34 : 22,
       margin: EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: Colors.indigo.shade900,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white70, width: 1),
       ),
-      child: Center(child: Text("🎴", style: TextStyle(fontSize: 9))),
+      child: Center(child: Text("🎴", style: TextStyle(fontSize: 8))),
     );
   }
 
@@ -328,14 +327,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 style: TextStyle(
                   color: (isCurrentTurn || isReceivingCard) ? Colors.white : Colors.amberAccent,
                   fontWeight: FontWeight.bold,
-                  fontSize: isCurrentTurn ? 14 : 12,
+                  fontSize: isCurrentTurn ? 13 : 11,
                 ),
               ),
             ],
           ),
           Text(
             "👑 Wins: $wins",
-            style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -350,6 +349,51 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
 
     return textWidget;
+  }
+
+  // PLAYER HAND AREA DIRECTLY UNDER THEIR NAME (ACTIVE PLAYER = OPEN CARDS, OTHERS = HIDDEN)
+  Widget _buildPlayerHandView(int playerIndex, {bool isVertical = false}) {
+    if (!cardsDealt) return SizedBox.shrink();
+
+    Player p = game.players[playerIndex];
+    bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
+
+    // ONLY SHOW OPEN CARDS IF IT'S THIS PLAYER'S TURN
+    if (isCurrentTurn) {
+      if (isVertical) {
+        return Column(
+          children: List.generate(p.hand.length, (i) => _buildPlayingCard(
+            value: p.hand[i],
+            onTap: isCardFlying ? null : () => _handleCardTap(p.hand[i]),
+          )),
+        );
+      } else {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: p.hand.map((cardValue) {
+              return _buildPlayingCard(
+                value: cardValue,
+                onTap: isCardFlying ? null : () => _handleCardTap(cardValue),
+              );
+            }).toList(),
+          ),
+        );
+      }
+    } else {
+      // OTHERWISE KEEP CARDS FULLY HIDDEN (BACKFACE)
+      if (isVertical) {
+        return Column(
+          children: List.generate(p.hand.length, (_) => _buildHiddenCard(isVertical: true)),
+        );
+      } else {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(p.hand.length, (_) => _buildHiddenCard()),
+        );
+      }
+    }
   }
 
   @override
@@ -393,12 +437,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         isSoundEnabled = !isSoundEnabled;
                       });
                     },
-                    tooltip: isSoundEnabled ? "Mute Sound" : "Unmute Sound",
                   ),
                   IconButton(
                     icon: Icon(Icons.history, color: Colors.amber),
                     onPressed: _showScoreHistoryDrawer,
-                    tooltip: "Score History",
                   ),
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -420,42 +462,33 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           children: [
             Column(
               children: [
-                SizedBox(height: 10),
+                SizedBox(height: 25),
 
-                // TOP PLAYER
+                // TOP PLAYER (PLAYER INDEX 2)
                 if (game.players.length >= 3)
                   Column(
                     children: [
                       _buildPlayerLabel(game.players[2], 2),
-                      SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: cardsDealt 
-                            ? List.generate(game.players[2].hand.length, (_) => _buildHiddenCard())
-                            : [],
-                      ),
+                      SizedBox(height: 6),
+                      _buildPlayerHandView(2),
                     ],
                   ),
 
-                SizedBox(height: 15),
+                SizedBox(height: 20),
 
-                // CENTER ROW WITH REALISTIC CASINO GREEN TABLE
+                // CENTER ROW WITH CASINO MAT
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // LEFT PLAYER
+                    // LEFT PLAYER (PLAYER INDEX 3)
                     if (game.players.length == 4)
                       Padding(
                         padding: const EdgeInsets.only(left: 6.0),
                         child: Column(
                           children: [
                             _buildPlayerLabel(game.players[3], 3, isRotated: true, quarterTurns: 1),
-                            SizedBox(height: 5),
-                            Column(
-                              children: cardsDealt 
-                                  ? List.generate(game.players[3].hand.length, (_) => _buildHiddenCard(isVertical: true))
-                                  : [],
-                            ),
+                            SizedBox(height: 6),
+                            _buildPlayerHandView(3, isVertical: true),
                           ],
                         ),
                       )
@@ -543,19 +576,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       ),
                     ),
 
-                    // RIGHT PLAYER
+                    // RIGHT PLAYER (PLAYER INDEX 1)
                     if (game.players.length >= 2)
                       Padding(
                         padding: const EdgeInsets.only(right: 6.0),
                         child: Column(
                           children: [
                             _buildPlayerLabel(game.players[1], 1, isRotated: true, quarterTurns: 3),
-                            SizedBox(height: 5),
-                            Column(
-                              children: cardsDealt 
-                                  ? List.generate(game.players[1].hand.length, (_) => _buildHiddenCard(isVertical: true))
-                                  : [],
-                            ),
+                            SizedBox(height: 6),
+                            _buildPlayerHandView(1, isVertical: true),
                           ],
                         ),
                       )
@@ -564,50 +593,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ],
                 ),
 
-                SizedBox(height: 10),
+                SizedBox(height: 25),
+
+                // BOTTOM PLAYER (PLAYER INDEX 0)
                 _buildPlayerLabel(game.players[0], 0),
+                SizedBox(height: 8),
+                _buildPlayerHandView(0),
 
                 Spacer(),
 
                 if (game.warningMsg.isNotEmpty)
                   Container(
                     color: Colors.redAccent,
+                    margin: EdgeInsets.only(bottom: 10),
                     padding: EdgeInsets.symmetric(vertical: 4, horizontal: 12),
                     child: Text(game.warningMsg, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-
-                // BOTTOM PLAYER HAND AREA
-                if (cardsDealt)
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: Color(0xFF0F172A),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                    ),
-                    child: Column(
-                      children: [
-                        Text("Turn: ${activePlayer.name}", 
-                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 10),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: activePlayer.hand.map((cardValue) {
-                              return _buildPlayingCard(
-                                value: cardValue,
-                                onTap: isCardFlying ? null : () => _handleCardTap(cardValue),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
               ],
             ),
 
-            // First Turn Popup
+            // FIRST TURN POPUP
             if (game.showFirstTurnDialog && cardsDealt)
               Container(
                 color: Colors.black54,
@@ -654,7 +659,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
 
-            // PASS PHONE OVERLAY
+            // PASS PHONE OVERLAY (APPEARS BEFORE NEXT TURN TO HIDE CARDS)
             if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt && !game.isDeckFinished && !isCardFlying)
               Container(
                 color: Colors.black87,
@@ -667,7 +672,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       Text(game.lastRoundWinnerMsg, style: TextStyle(color: Colors.amber, fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                       SizedBox(height: 25),
                     ],
-                    Text("Turn: ${activePlayer.name}", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                    Text("Pass Phone to:", style: TextStyle(color: Colors.white70, fontSize: 16)),
+                    SizedBox(height: 6),
+                    Text("Turn: ${activePlayer.name}", textAlign: TextAlign.center, style: TextStyle(color: Colors.amberAccent, fontSize: 28, fontWeight: FontWeight.bold)),
                     SizedBox(height: 30),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
