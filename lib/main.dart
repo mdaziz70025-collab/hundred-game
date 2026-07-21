@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'game_models.dart';
 import 'game_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await MobileAds.instance.initialize(); // Initialize Google Ads Engine
   runApp(HundredGameApp());
 }
 
@@ -122,7 +125,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // PLAYER NAMES INPUT DIALOG BEFORE MATCH START
   void _startMatchWithCustomNames() {
     List<TextEditingController> controllers = List.generate(
       selectedPlayers,
@@ -181,9 +183,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text("PLAY NOW", style: TextStyle(fontWeight: FontWeight.bold)),
               onPressed: () {
                 List<String> names = controllers.map((c) => c.text.trim().isEmpty ? "Player" : c.text.trim()).toList();
-                Navigator.pop(context); // Close Dialog
+                Navigator.pop(context);
 
-                // Launch Game Screen with custom names
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -211,7 +212,6 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
           child: Column(
             children: [
-              // 1. PROFILE & STATS CARD
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -285,7 +285,6 @@ class _HomeScreenState extends State<HomeScreen> {
               Text("🎮 Game Settings", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
               SizedBox(height: 15),
 
-              // PLAYER COUNT SELECTOR
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Color(0xFF1E293B), borderRadius: BorderRadius.circular(15)),
@@ -316,7 +315,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 15),
 
-              // TARGET SCORE SELECTOR
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Color(0xFF1E293B), borderRadius: BorderRadius.circular(15)),
@@ -347,7 +345,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               Spacer(),
 
-              // START GAME BUTTON
               SizedBox(
                 width: double.infinity,
                 height: 55,
