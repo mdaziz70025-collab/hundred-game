@@ -25,11 +25,6 @@ jobs:
           flutter-version: '3.19.x'
           channel: 'stable'
 
-      - name: Re-create Android Project Safely
-        run: |
-          rm -rf android
-          flutter create --project-name hundred_game --overwrite .
-
       - name: Get Dependencies
         run: flutter pub get
 
