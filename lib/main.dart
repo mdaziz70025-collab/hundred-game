@@ -59,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       controller: _nameController,
                       style: TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        labelText: "Player Name",
+                        labelText: "Player 1 Name",
                         labelStyle: TextStyle(color: Colors.white70),
                         enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amber)),
                         focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amberAccent)),
@@ -108,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Text("SAVE", style: TextStyle(fontWeight: FontWeight.bold)),
                   onPressed: () {
                     setState(() {
-                      userProfile.name = _nameController.text.trim().isEmpty ? "Guest Player" : _nameController.text.trim();
+                      userProfile.name = _nameController.text.trim().isEmpty ? "Player 1" : _nameController.text.trim();
                       userProfile.avatar = tempAvatar;
                     });
                     Navigator.pop(context);
@@ -122,22 +122,84 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _startGame() {
-    List<String> playerNames = [userProfile.name];
-    for (int i = 2; i <= selectedPlayers; i++) {
-      playerNames.add("Bot $i");
-    }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => GameScreen(
-          mode: GameMode.offline,
-          totalPlayers: selectedPlayers,
-          targetScore: targetScore,
-          playerNames: playerNames,
-        ),
+  // PLAYER NAMES INPUT DIALOG BEFORE MATCH START
+  void _startMatchWithCustomNames() {
+    List<TextEditingController> controllers = List.generate(
+      selectedPlayers,
+      (index) => TextEditingController(
+        text: index == 0 ? userProfile.name : "Player ${index + 1}",
       ),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Color(0xFF1E293B),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Enter Player Names", style: TextStyle(color: Colors.amber, fontSize: 18)),
+              TextButton(
+                child: Text("Auto Bots", style: TextStyle(color: Colors.cyanAccent, fontSize: 12)),
+                onPressed: () {
+                  for (int i = 1; i < selectedPlayers; i++) {
+                    controllers[i].text = "Bot ${i + 1}";
+                  }
+                },
+              )
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(selectedPlayers, (index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: TextField(
+                    controller: controllers[index],
+                    style: TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: index == 0 ? "Player 1 (You)" : "Player ${index + 1} Name",
+                      labelStyle: TextStyle(color: Colors.white70, fontSize: 13),
+                      prefixIcon: Icon(index == 0 ? Icons.person : Icons.group, color: Colors.amber, size: 20),
+                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amber)),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: Text("CANCEL", style: TextStyle(color: Colors.white54)),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
+              child: Text("PLAY NOW", style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () {
+                List<String> names = controllers.map((c) => c.text.trim().isEmpty ? "Player" : c.text.trim()).toList();
+                Navigator.pop(context); // Close Dialog
+
+                // Launch Game Screen with custom names
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GameScreen(
+                      mode: GameMode.offline,
+                      totalPlayers: selectedPlayers,
+                      targetScore: targetScore,
+                      playerNames: names,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -149,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
           child: Column(
             children: [
-              // 1. AUTO GUEST PROFILE & STATS CARD
+              // 1. PROFILE & STATS CARD
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -206,7 +268,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     Divider(color: Colors.white24, height: 24),
-                    // STATS ROW
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
@@ -221,7 +282,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 25),
 
-              // 2. GAME SETUP OPTIONS
               Text("🎮 Game Settings", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
               SizedBox(height: 15),
 
@@ -287,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               Spacer(),
 
-              // 3. START GAME BUTTON
+              // START GAME BUTTON
               SizedBox(
                 width: double.infinity,
                 height: 55,
@@ -299,7 +359,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   icon: Icon(Icons.play_arrow, size: 28),
                   label: Text("START MATCH", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  onPressed: _startGame,
+                  onPressed: _startMatchWithCustomNames,
                 ),
               ),
               SizedBox(height: 10),
