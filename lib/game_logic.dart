@@ -9,7 +9,6 @@ class TableCard {
 }
 
 class GameLogic {
-  final GameMode mode;
   final int totalPlayers;
   final int targetScore;
   final List<String> playerNames;
@@ -19,9 +18,9 @@ class GameLogic {
   List<TableCard> tableCards = [];
   bool isGameOver = false;
   String? winnerName;
+  int roundNumber = 0;
 
   GameLogic({
-    required this.mode,
     required this.totalPlayers,
     required this.targetScore,
     required this.playerNames,
@@ -30,10 +29,10 @@ class GameLogic {
   }
 
   void _startNewRound() {
+    roundNumber++;
     List<String> suits = ['♠️', '♥️', '♦️', '♣️'];
     Random rng = Random();
 
-    // Deck: Multiples of 5 (5 to 100)
     List<CardModel> fullDeck = [];
     int startVal = (totalPlayers == 3) ? 15 : 5;
 
@@ -44,7 +43,6 @@ class GameLogic {
 
     fullDeck.shuffle(rng);
 
-    // Cards per player distribution
     int cardsPerPlayer = 5;
     if (totalPlayers == 2) cardsPerPlayer = 10;
     if (totalPlayers == 3) cardsPerPlayer = 6;
@@ -56,6 +54,7 @@ class GameLogic {
         name: playerNames.length > i ? playerNames[i] : "Player ${i + 1}",
         hand: [],
         currentScore: players.length > i ? players[i].currentScore : 0,
+        wins: players.length > i ? players[i].wins : 0,
       ),
     );
 
@@ -69,7 +68,6 @@ class GameLogic {
       players[i].hand.sort((a, b) => a.number.compareTo(b.number));
     }
 
-    // Starting player decision (Holding '5' or '15')
     int startingPlayer = 0;
     int lowestFound = 999;
     int targetOpeningCard = (totalPlayers == 3) ? 15 : 5;
@@ -117,6 +115,7 @@ class GameLogic {
 
     int winnerIdx = highest.playerIndex;
     players[winnerIdx].currentScore += roundPoints;
+    players[winnerIdx].wins += 1;
 
     if (players[winnerIdx].currentScore >= targetScore) {
       isGameOver = true;
