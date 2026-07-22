@@ -1,5 +1,5 @@
 name: hundred_game
-description: "A 100 Card Game application."
+description: A 100 Card Game built with Flutter.
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -11,9 +11,6 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  google_mobile_ads: ^5.1.0
-  firebase_core: ^2.27.0
-  firebase_database: ^10.4.9
 
 dev_dependencies:
   flutter_test:
