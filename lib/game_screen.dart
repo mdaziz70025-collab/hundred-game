@@ -3,13 +3,13 @@ import 'game_models.dart';
 import 'game_logic.dart';
 
 class GameScreen extends StatefulWidget {
-  final GameMode mode;
+  final dynamic mode; 
   final int totalPlayers;
   final int targetScore;
   final List<String> playerNames;
   final String? roomCode;
 
-  GameScreen({
+  const GameScreen({
     Key? key,
     required this.mode,
     required this.totalPlayers,
@@ -29,7 +29,7 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     game = GameLogic(
-    mode: widget.mode,
+      mode: widget.mode,
       totalPlayers: widget.totalPlayers,
       targetScore: widget.targetScore,
       playerNames: widget.playerNames,
@@ -52,13 +52,13 @@ class _GameScreenState extends State<GameScreen> {
     Player current = game.players[game.currentPlayerIndex];
 
     return Scaffold(
-      backgroundColor: Color(0xFF0D1B2A),
+      backgroundColor: const Color(0xFF0D1B2A),
       appBar: AppBar(
         title: Text(
           widget.roomCode != null ? "Room: ${widget.roomCode}" : "100 Card Game",
-          style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF0F172A),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -66,14 +66,14 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             // Top Players Score Header
             Container(
-              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-              color: Color(0xFF0F172A),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              color: const Color(0xFF0F172A),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: game.players.map((p) {
                   bool isCurrentTurn = p.id == current.id;
                   return Container(
-                    padding: EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
                     decoration: BoxDecoration(
                       color: isCurrentTurn ? Colors.amberAccent : Colors.transparent,
                       borderRadius: BorderRadius.circular(15),
@@ -99,11 +99,11 @@ class _GameScreenState extends State<GameScreen> {
                   width: 240,
                   height: 240,
                   decoration: BoxDecoration(
-                    gradient: RadialGradient(
+                    gradient: const RadialGradient(
                       colors: [Color(0xFF1E5631), Color(0xFF0B3B18)],
                     ),
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 12)],
+                    boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 12)],
                     border: Border.all(color: Colors.amberAccent, width: 3),
                   ),
                   child: Center(
@@ -124,7 +124,7 @@ class _GameScreenState extends State<GameScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text("${tc.card.number}", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _getSuitColor(tc.card.suit))),
-                              Text(tc.card.suit, style: TextStyle(fontSize: 14)),
+                              Text(tc.card.suit, style: const TextStyle(fontSize: 14)),
                             ],
                           ),
                         );
@@ -137,23 +137,23 @@ class _GameScreenState extends State<GameScreen> {
 
             // Turn Indicator
             Container(
-              padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.amberAccent,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 "👉 ${current.name}'s Turn",
-                style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
 
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
 
             // Active Player's Hand Cards (Bottom)
             Container(
               height: 105,
-              padding: EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: current.hand.length,
@@ -165,7 +165,7 @@ class _GameScreenState extends State<GameScreen> {
                     onTap: () => _playCard(card),
                     child: Container(
                       width: 62,
-                      margin: EdgeInsets.symmetric(horizontal: 4),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
@@ -184,8 +184,8 @@ class _GameScreenState extends State<GameScreen> {
                             "${card.number}",
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _getSuitColor(card.suit)),
                           ),
-                          SizedBox(height: 2),
-                          Text(card.suit, style: TextStyle(fontSize: 15)),
+                          const SizedBox(height: 2),
+                          Text(card.suit, style: const TextStyle(fontSize: 15)),
                         ],
                       ),
                     ),
@@ -193,7 +193,7 @@ class _GameScreenState extends State<GameScreen> {
                 },
               ),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
           ],
         ),
       ),
