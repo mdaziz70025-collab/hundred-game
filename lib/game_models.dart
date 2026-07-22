@@ -27,14 +27,13 @@ class Player {
   final String name;
   List<CardModel> hand;
   int currentScore;
+  int wins;
 
   Player({
     required this.id,
     required this.name,
     required this.hand,
     this.currentScore = 0,
+    this.wins = 0,
   });
-
-  int get score => currentScore;
-  set score(int val) => currentScore = val;
 }
