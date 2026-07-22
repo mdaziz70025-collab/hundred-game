@@ -129,6 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => GameScreen(
+                      mode: GameMode.offline, // Required mode added here
                       totalPlayers: totalPlayers,
                       targetScore: targetScore,
                       playerNames: names,
@@ -160,7 +161,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Profile Box (Screenshot Match)
                     Container(
                       padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(
