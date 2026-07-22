@@ -9,6 +9,8 @@ class TableCard {
 }
 
 class GameLogic {
+  final dynamic mode; // <-- 1. YE LINE ADD KI GAYI HAI
+
   final int totalPlayers;
   final int targetScore;
   final List<String> playerNames;
@@ -21,6 +23,7 @@ class GameLogic {
   int roundNumber = 0;
 
   GameLogic({
+    this.mode, // <-- 2. YE LINE ADD KI GAYI HAI
     required this.totalPlayers,
     required this.targetScore,
     required this.playerNames,
