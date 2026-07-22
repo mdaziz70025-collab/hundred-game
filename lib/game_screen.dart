@@ -29,7 +29,7 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     super.initState();
     game = GameLogic(
-      mode: widget.mode,
+    
       totalPlayers: widget.totalPlayers,
       targetScore: widget.targetScore,
       playerNames: widget.playerNames,
