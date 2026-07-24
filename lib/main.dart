@@ -122,12 +122,19 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // PLAYER NAMES INPUT DIALOG BEFORE MATCH START
-  void _startMatchWithCustomNames() {
+  // GAME MODE LAUNCHER (PASS N PLAY, COMPUTER, ONLINE, FRIENDS)
+  void _startMatchWithOptions(String modeType) {
+    if (modeType == 'ONLINE' || modeType == 'FRIENDS') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("🚀 Online & Friends mode coming soon in next update!"), backgroundColor: Colors.amber.shade800),
+      );
+      return;
+    }
+
     List<TextEditingController> controllers = List.generate(
       selectedPlayers,
       (index) => TextEditingController(
-        text: index == 0 ? userProfile.name : "Player ${index + 1}",
+        text: index == 0 ? userProfile.name : (modeType == 'COMPUTER' ? "Bot ${index}" : "Player ${index + 1}"),
       ),
     );
 
@@ -136,19 +143,9 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Color(0xFF1E293B),
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Enter Player Names", style: TextStyle(color: Colors.amber, fontSize: 18)),
-              TextButton(
-                child: Text("Auto Bots", style: TextStyle(color: Colors.cyanAccent, fontSize: 12)),
-                onPressed: () {
-                  for (int i = 1; i < selectedPlayers; i++) {
-                    controllers[i].text = "Bot ${i + 1}";
-                  }
-                },
-              )
-            ],
+          title: Text(
+            modeType == 'COMPUTER' ? "VS Computer Setup" : "Pass N Play Setup",
+            style: TextStyle(color: Colors.amber, fontSize: 18),
           ),
           content: SingleChildScrollView(
             child: Column(
@@ -159,10 +156,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: TextField(
                     controller: controllers[index],
                     style: TextStyle(color: Colors.white),
+                    enabled: !(modeType == 'COMPUTER' && index > 0), // Disable editing for bot names if desired, or keep open
                     decoration: InputDecoration(
                       labelText: index == 0 ? "Player 1 (You)" : "Player ${index + 1} Name",
                       labelStyle: TextStyle(color: Colors.white70, fontSize: 13),
-                      prefixIcon: Icon(index == 0 ? Icons.person : Icons.group, color: Colors.amber, size: 20),
+                      prefixIcon: Icon(index == 0 ? Icons.person : Icons.smart_toy, color: Colors.amber, size: 20),
                       enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
                       focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.amber)),
                     ),
@@ -178,12 +176,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
-              child: Text("PLAY NOW", style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text("START MATCH", style: TextStyle(fontWeight: FontWeight.bold)),
               onPressed: () {
                 List<String> names = controllers.map((c) => c.text.trim().isEmpty ? "Player" : c.text.trim()).toList();
-                Navigator.pop(context); // Close Dialog
+                Navigator.pop(context);
 
-                // Launch Game Screen with custom names
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -207,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
           child: Column(
             children: [
@@ -280,12 +277,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              SizedBox(height: 25),
+              SizedBox(height: 20),
 
-              Text("🎮 Game Settings", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
-              SizedBox(height: 15),
+              // 2. LUDO KING STYLE GAME MODE BUTTONS
+              Text("🎮 Select Game Mode", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
+              SizedBox(height: 12),
 
-              // PLAYER COUNT SELECTOR
+              Row(
+                children: [
+                  Expanded(child: _buildModeCard("ONLINE", "🌍", Colors.blue.shade700, () => _startMatchWithOptions("ONLINE"))),
+                  SizedBox(width: 10),
+                  Expanded(child: _buildModeCard("FRIENDS", "❤️", Colors.pink.shade700, () => _startMatchWithOptions("FRIENDS"))),
+                ],
+              ),
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(child: _buildModeCard("COMPUTER", "🤖", Colors.indigo.shade700, () => _startMatchWithOptions("COMPUTER"))),
+                  SizedBox(width: 10),
+                  Expanded(child: _buildModeCard("PASS N PLAY", "👥", Colors.green.shade700, () => _startMatchWithOptions("PASS"))),
+                ],
+              ),
+
+              SizedBox(height: 20),
+
+              // 3. GAME SETTINGS (PLAYERS & TARGET)
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Color(0xFF1E293B), borderRadius: BorderRadius.circular(15)),
@@ -314,9 +330,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              SizedBox(height: 15),
+              SizedBox(height: 12),
 
-              // TARGET SCORE SELECTOR
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Color(0xFF1E293B), borderRadius: BorderRadius.circular(15)),
@@ -344,27 +359,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-
-              Spacer(),
-
-              // START GAME BUTTON
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  icon: Icon(Icons.play_arrow, size: 28),
-                  label: Text("START MATCH", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  onPressed: _startMatchWithCustomNames,
-                ),
-              ),
-              SizedBox(height: 10),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModeCard(String title, String emoji, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 85,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.amber.shade400, width: 2),
+          boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 6, offset: Offset(0, 3))],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(emoji, style: TextStyle(fontSize: 26)),
+            SizedBox(height: 4),
+            Text(title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+          ],
         ),
       ),
     );
