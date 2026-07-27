@@ -1,8 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+// GameMode Enum
+enum GameMode { offline, online }
+
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  final GameMode? mode; // 👈 main.dart se mode accept karne ke liye
+
+  const GameScreen({super.key, this.mode});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -22,7 +27,7 @@ class _GameScreenState extends State<GameScreen> {
     super.initState();
   }
 
-  // Player jab card drop/play karta hai
+  // Player jab card play karta hai
   void _playHumanCard(String card) {
     if (!isHumanTurn || isGameOver) return;
 
@@ -40,18 +45,14 @@ class _GameScreenState extends State<GameScreen> {
   void _triggerBotTurn() {
     if (isGameOver) return;
 
-    // 1-second delay taaki natural lage ki computer soch raha hai
     Timer(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
 
       if (botHand.isNotEmpty) {
         setState(() {
-          // Bot pehla card select karke table par dalega
           String playedCard = botHand.removeAt(0);
           tableCards.add(playedCard);
-
-          // Turn wapas Human Player ko do
-          isHumanTurn = true;
+          isHumanTurn = true; // Turn wapas Player ko do
         });
       } else {
         setState(() {
@@ -64,9 +65,9 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1B5E20), // Classic Green Table Surface
+      backgroundColor: const Color(0xFF1B5E20),
       appBar: AppBar(
-        title: const Text('100 Card Game'),
+        title: Text(widget.mode == GameMode.online ? '100 Card Game (Online)' : '100 Card Game (Offline)'),
         backgroundColor: Colors.green[900],
         centerTitle: true,
       ),
@@ -98,7 +99,6 @@ class _GameScreenState extends State<GameScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Bot Cards (Face Down)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
@@ -122,7 +122,7 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
 
-            // --- TABLE / DISCARD PILE AREA ---
+            // --- TABLE AREA ---
             Expanded(
               child: Center(
                 child: Container(
@@ -162,7 +162,6 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Player Cards List
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -184,7 +183,6 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  // Card Design Widget
   Widget _buildCardWidget(String cardText, {bool isTableCard = false}) {
     bool isRed = cardText.contains('♥') || cardText.contains('♦');
 
