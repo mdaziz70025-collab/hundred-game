@@ -137,41 +137,32 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         game.revealFirstTurnDialog();
       });
 
-      _checkAndPlayBotOrLastTurn();
+      _checkAndPlayNextTurn();
     }
   }
 
-  // 🤖 Bot Turn + 🃏 Automatic Last Round Execution Logic
-  void _checkAndPlayBotOrLastTurn() async {
+  // 🤖 Automatic Turn Logic (Human + Bots Last Card Auto-Play included)
+  void _checkAndPlayNextTurn() async {
     if (!cardsDealt || isDealing || game.isDeckFinished || game.winnerName.isNotEmpty) return;
 
-    // 🔥 Check: Agar Aakhri Round Hai (Sabhi Players Ke Paas Exact 1 Card Bacha Hai)
-    bool isLastRound = game.players.every((p) => p.hand.length == 1) && game.currentRoundCards.isEmpty;
+    // 🔥 Check: Agar sabhi players ke paas exact 1 card bacha hai (Aakhri round)
+    bool isLastRound = game.players.every((p) => p.hand.length == 1);
 
     if (isLastRound) {
-      await Future.delayed(Duration(milliseconds: 800)); // Smooth transition delay
+      await Future.delayed(Duration(milliseconds: 600));
       if (!mounted) return;
 
-      // Sabhi players ke aakhri card automatic ek-ek karke table par chale jaenge
-      while (game.currentRoundCards.length < widget.totalPlayers && !game.isDeckFinished) {
-        Player p = game.players[game.currentPlayerIndex];
-        if (p.hand.isNotEmpty) {
-          int lastCard = p.hand.first;
-          _playSoundEffect();
-          setState(() {
-            game.playCard(lastCard);
-          });
-          await Future.delayed(Duration(milliseconds: 400));
-          if (!mounted) return;
-        }
+      Player current = game.players[game.currentPlayerIndex];
+      if (current.hand.isNotEmpty) {
+        _handleCardTap(current.hand.first);
       }
       return;
     }
 
-    // 🤖 Normal Bot Turn Logic
+    // Normal Bot Turn
     Player current = game.players[game.currentPlayerIndex];
     if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
-      await Future.delayed(Duration(milliseconds: 1000));
+      await Future.delayed(Duration(milliseconds: 800));
       if (!mounted) return;
 
       int? selectedCardToPlay;
@@ -248,7 +239,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       game.playCard(cardValue);
     });
 
-    _checkAndPlayBotOrLastTurn();
+    _checkAndPlayNextTurn();
   }
 
   Future<bool> _showExitDialog() async {
@@ -713,7 +704,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       child: Text("Start Turn"),
                       onPressed: () {
                         setState(() => game.showFirstTurnDialog = false);
-                        _checkAndPlayBotOrLastTurn();
+                        _checkAndPlayNextTurn();
                       },
                     )
                   ],
@@ -773,7 +764,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       onPressed: () => setState(() {
                         game.isCardHiddenForPass = false;
                         game.lastRoundWinnerMsg = "";
-                        _checkAndPlayBotOrLastTurn();
+                        _checkAndPlayNextTurn();
                       }),
                     )
                   ],
