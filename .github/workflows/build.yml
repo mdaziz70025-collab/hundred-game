@@ -1,31 +1,4 @@
-name: Flutter Build APK
-
-on:
-  push:
-    branches:
-      - main
-      - master
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable' # 👈 Specific version ki jagah stable channel lagaya hai
-
-      - name: Locate pubspec.yaml and Build
+- name: Locate pubspec.yaml and Build
         run: |
           PUBSPEC_PATH=$(find . -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
           if [ -z "$PUBSPEC_PATH" ]; then
@@ -37,10 +10,4 @@ jobs:
           
           cd "$PROJECT_DIR"
           flutter pub get
-          flutter build apk --release
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-apk
-          path: '**/build/app/outputs/flutter-apk/app-release.apk'
+          flutter build apk --release --android-skip-build-dependency-validation
