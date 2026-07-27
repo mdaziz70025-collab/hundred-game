@@ -136,27 +136,45 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         currentlyDealingPlayerIndex = -1;
         game.revealFirstTurnDialog();
       });
-      
-      // Cards badhne ke baad check karein ki kya pehla turn bot ka toh nahi
-      _checkAndPlayBotTurn();
+
+      _checkAndPlayBotOrLastTurn();
     }
   }
 
-  // 🤖 Automatic Bot Turn Logic
-  void _checkAndPlayBotTurn() async {
+  // 🤖 Bot Turn + 🃏 Automatic Last Round Execution Logic
+  void _checkAndPlayBotOrLastTurn() async {
     if (!cardsDealt || isDealing || game.isDeckFinished || game.winnerName.isNotEmpty) return;
 
+    // 🔥 Check: Agar Aakhri Round Hai (Sabhi Players Ke Paas Exact 1 Card Bacha Hai)
+    bool isLastRound = game.players.every((p) => p.hand.length == 1) && game.currentRoundCards.isEmpty;
+
+    if (isLastRound) {
+      await Future.delayed(Duration(milliseconds: 800)); // Smooth transition delay
+      if (!mounted) return;
+
+      // Sabhi players ke aakhri card automatic ek-ek karke table par chale jaenge
+      while (game.currentRoundCards.length < widget.totalPlayers && !game.isDeckFinished) {
+        Player p = game.players[game.currentPlayerIndex];
+        if (p.hand.isNotEmpty) {
+          int lastCard = p.hand.first;
+          _playSoundEffect();
+          setState(() {
+            game.playCard(lastCard);
+          });
+          await Future.delayed(Duration(milliseconds: 400));
+          if (!mounted) return;
+        }
+      }
+      return;
+    }
+
+    // 🤖 Normal Bot Turn Logic
     Player current = game.players[game.currentPlayerIndex];
-
-    // Agar yeh player 'Bot' / Computer hai (Name 'Bot' se start hota ho ya Player 0 na ho)
     if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
-      await Future.delayed(Duration(milliseconds: 1000)); // 1 sec natural delay
-
+      await Future.delayed(Duration(milliseconds: 1000));
       if (!mounted) return;
 
       int? selectedCardToPlay;
-
-      // Rule Validation ke mutabiq bot sabse sahi card select karega
       List<int> validCards = [];
 
       for (int card in current.hand) {
@@ -177,7 +195,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
 
       if (validCards.isNotEmpty) {
-        validCards.sort(); // Lowest valid card pehle phenkega
+        validCards.sort();
         selectedCardToPlay = validCards.first;
       } else if (current.hand.isNotEmpty) {
         selectedCardToPlay = current.hand.first;
@@ -230,8 +248,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       game.playCard(cardValue);
     });
 
-    // Agla turn trigger karein (agar bot ka ho toh automatic khelega)
-    _checkAndPlayBotTurn();
+    _checkAndPlayBotOrLastTurn();
   }
 
   Future<bool> _showExitDialog() async {
@@ -696,7 +713,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       child: Text("Start Turn"),
                       onPressed: () {
                         setState(() => game.showFirstTurnDialog = false);
-                        _checkAndPlayBotTurn();
+                        _checkAndPlayBotOrLastTurn();
                       },
                     )
                   ],
@@ -756,7 +773,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       onPressed: () => setState(() {
                         game.isCardHiddenForPass = false;
                         game.lastRoundWinnerMsg = "";
-                        _checkAndPlayBotTurn();
+                        _checkAndPlayBotOrLastTurn();
                       }),
                     )
                   ],
