@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-
-// GameMode Enum
-enum GameMode { offline, online }
+import 'game_models.dart'; // 👈 Existing GameMode model yahan se import ho gaya
 
 class GameScreen extends StatefulWidget {
-  final GameMode? mode; // 👈 main.dart se mode accept karne ke liye
+  final GameMode? mode;
+  final int? totalPlayers; // 👈 main.dart se totalPlayers accept kar raha hai
 
-  const GameScreen({super.key, this.mode});
+  const GameScreen({
+    super.key,
+    this.mode,
+    this.totalPlayers,
+  });
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -64,10 +67,16 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    int currentPlayers = widget.totalPlayers ?? 2;
+
     return Scaffold(
       backgroundColor: const Color(0xFF1B5E20),
       appBar: AppBar(
-        title: Text(widget.mode == GameMode.online ? '100 Card Game (Online)' : '100 Card Game (Offline)'),
+        title: Text(
+          widget.mode == GameMode.online
+              ? '100 Card Game (Online - $currentPlayers Players)'
+              : '100 Card Game (Offline - $currentPlayers Players)',
+        ),
         backgroundColor: Colors.green[900],
         centerTitle: true,
       ),
