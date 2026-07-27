@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  google_mobile_ads: ^5.2.0 # 👈 Exactly caret symbol (^) ke sath 5.2.0 rakhein
+  google_mobile_ads: 5.2.0 # 👈 Bina caret (^) ke 5.2.0, taaki 5.3.1 download na ho
 
 dev_dependencies:
   flutter_test:
