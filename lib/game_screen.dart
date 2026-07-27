@@ -5,13 +5,15 @@ import 'game_models.dart';
 class GameScreen extends StatefulWidget {
   final GameMode? mode;
   final int? totalPlayers;
-  final int? targetScore; // 👈 main.dart se targetScore accept karne ke liye
+  final int? targetScore;
+  final List<String>? playerNames; // 👈 main.dart se playerNames accept karne ke liye
 
   const GameScreen({
     super.key,
     this.mode,
     this.totalPlayers,
     this.targetScore,
+    this.playerNames,
   });
 
   @override
@@ -71,14 +73,17 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     int currentPlayers = widget.totalPlayers ?? 2;
     int target = widget.targetScore ?? 100;
+    String botName = (widget.playerNames != null && widget.playerNames!.length > 1)
+        ? widget.playerNames![1]
+        : "Computer";
 
     return Scaffold(
       backgroundColor: const Color(0xFF1B5E20),
       appBar: AppBar(
         title: Text(
           widget.mode == GameMode.online
-              ? '100 Card Game (Online - $currentPlayers Players - Target: $target)'
-              : '100 Card Game (Offline - $currentPlayers Players - Target: $target)',
+              ? '100 Card Game (Online - Target: $target)'
+              : '100 Card Game (Offline - Target: $target)',
         ),
         backgroundColor: Colors.green[900],
         centerTitle: true,
@@ -100,8 +105,8 @@ class _GameScreenState extends State<GameScreen> {
                       const SizedBox(width: 8),
                       Text(
                         !isHumanTurn
-                            ? "Computer is thinking..."
-                            : "Computer's Hand (${botHand.length})",
+                            ? "$botName is thinking..."
+                            : "$botName's Hand (${botHand.length})",
                         style: TextStyle(
                           color: !isHumanTurn ? Colors.yellow : Colors.white,
                           fontSize: 16,
@@ -151,7 +156,7 @@ class _GameScreenState extends State<GameScreen> {
                   child: Center(
                     child: tableCards.isEmpty
                         ? Text(
-                            isHumanTurn ? "Drop Card Here" : "Computer Playing...",
+                            isHumanTurn ? "Drop Card Here" : "$botName Playing...",
                             style: const TextStyle(color: Colors.white70),
                           )
                         : _buildCardWidget(tableCards.last, isTableCard: true),
@@ -166,7 +171,7 @@ class _GameScreenState extends State<GameScreen> {
               child: Column(
                 children: [
                   Text(
-                    isHumanTurn ? "YOUR TURN (Tap a Card)" : "WAIT FOR COMPUTER",
+                    isHumanTurn ? "YOUR TURN (Tap a Card)" : "WAIT FOR $botName",
                     style: TextStyle(
                       color: isHumanTurn ? Colors.greenAccent : Colors.white60,
                       fontSize: 18,
