@@ -1,15 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'game_models.dart'; // 👈 Existing GameMode model yahan se import ho gaya
+import 'game_models.dart';
 
 class GameScreen extends StatefulWidget {
   final GameMode? mode;
-  final int? totalPlayers; // 👈 main.dart se totalPlayers accept kar raha hai
+  final int? totalPlayers;
+  final int? targetScore; // 👈 main.dart se targetScore accept karne ke liye
 
   const GameScreen({
     super.key,
     this.mode,
     this.totalPlayers,
+    this.targetScore,
   });
 
   @override
@@ -68,14 +70,15 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     int currentPlayers = widget.totalPlayers ?? 2;
+    int target = widget.targetScore ?? 100;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1B5E20),
       appBar: AppBar(
         title: Text(
           widget.mode == GameMode.online
-              ? '100 Card Game (Online - $currentPlayers Players)'
-              : '100 Card Game (Offline - $currentPlayers Players)',
+              ? '100 Card Game (Online - $currentPlayers Players - Target: $target)'
+              : '100 Card Game (Offline - $currentPlayers Players - Target: $target)',
         ),
         backgroundColor: Colors.green[900],
         centerTitle: true,
