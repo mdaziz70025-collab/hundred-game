@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart'; // 👈 AdMob Package Import
 import 'game_models.dart';
 import 'game_logic.dart';
 
@@ -36,9 +37,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _turnAnimationController;
   late Animation<double> _turnScaleAnimation;
 
+  // 👈 AdMob Variables
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+  final String _bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111'; // Official Google Test Banner ID
+
   @override
   void initState() {
     super.initState();
+    _loadBannerAd(); // Load Ad on screen open
+
     game = HundredGameLogic(
       mode: widget.mode,
       totalPlayers: widget.totalPlayers,
@@ -56,8 +64,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: _bannerAdUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          if (mounted) {
+            setState(() {
+              _isBannerAdLoaded = true;
+            });
+          }
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
   @override
   void dispose() {
+    _bannerAd?.dispose(); // 👈 Safely dispose Ad when leaving game screen
     _turnAnimationController.dispose();
     super.dispose();
   }
@@ -351,14 +380,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return textWidget;
   }
 
-  // PLAYER HAND AREA DIRECTLY UNDER THEIR NAME (ACTIVE PLAYER = OPEN CARDS, OTHERS = HIDDEN)
   Widget _buildPlayerHandView(int playerIndex, {bool isVertical = false}) {
     if (!cardsDealt) return SizedBox.shrink();
 
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
 
-    // ONLY SHOW OPEN CARDS IF IT'S THIS PLAYER'S TURN
     if (isCurrentTurn) {
       if (isVertical) {
         return Column(
@@ -382,7 +409,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         );
       }
     } else {
-      // OTHERWISE KEEP CARDS FULLY HIDDEN (BACKFACE)
       if (isVertical) {
         return Column(
           children: List.generate(p.hand.length, (_) => _buildHiddenCard(isVertical: true)),
@@ -463,8 +489,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Column(
               children: [
                 SizedBox(height: 25),
-
-                // TOP PLAYER (PLAYER INDEX 2)
                 if (game.players.length >= 3)
                   Column(
                     children: [
@@ -473,14 +497,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       _buildPlayerHandView(2),
                     ],
                   ),
-
                 SizedBox(height: 20),
-
-                // CENTER ROW WITH CASINO MAT
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // LEFT PLAYER (PLAYER INDEX 3)
                     if (game.players.length == 4)
                       Padding(
                         padding: const EdgeInsets.only(left: 6.0),
@@ -494,8 +514,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       )
                     else
                       SizedBox(width: 40),
-
-                    // REALISTIC CASINO GREEN TABLE MAT
                     Container(
                       width: 175,
                       height: 175,
@@ -575,8 +593,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                       ),
                       ),
                     ),
-
-                    // RIGHT PLAYER (PLAYER INDEX 1)
                     if (game.players.length >= 2)
                       Padding(
                         padding: const EdgeInsets.only(right: 6.0),
@@ -592,16 +608,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       SizedBox(width: 40),
                   ],
                 ),
-
                 SizedBox(height: 25),
-
-                // BOTTOM PLAYER (PLAYER INDEX 0)
                 _buildPlayerLabel(game.players[0], 0),
                 SizedBox(height: 8),
                 _buildPlayerHandView(0),
-
                 Spacer(),
-
                 if (game.warningMsg.isNotEmpty)
                   Container(
                     color: Colors.redAccent,
@@ -609,10 +620,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     padding: EdgeInsets.symmetric(vertical: 4, horizontal: 12),
                     child: Text(game.warningMsg, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
+
+                // 👈 Bottom Banner Ad Box
+                if (_isBannerAdLoaded && _bannerAd != null)
+                  Container(
+                    alignment: Alignment.center,
+                    width: _bannerAd!.size.width.toDouble(),
+                    height: _bannerAd!.size.height.toDouble(),
+                    margin: const EdgeInsets.only(bottom: 4.0),
+                    child: AdWidget(ad: _bannerAd!),
+                  ),
               ],
             ),
-
-            // FIRST TURN POPUP
             if (game.showFirstTurnDialog && cardsDealt)
               Container(
                 color: Colors.black54,
@@ -627,8 +646,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
-
-            // RE-DEAL OVERLAY
             if (game.isDeckFinished && game.winnerName.isEmpty && !isCardFlying)
               Container(
                 color: Colors.black87,
@@ -658,8 +675,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
-
-            // PASS PHONE OVERLAY (APPEARS BEFORE NEXT TURN TO HIDE CARDS)
             if (game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && cardsDealt && !game.isDeckFinished && !isCardFlying)
               Container(
                 color: Colors.black87,
@@ -690,8 +705,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
-
-            // MATCH WINNER OVERLAY
             if (game.winnerName.isNotEmpty && !isCardFlying)
               Container(
                 color: Colors.black87,
