@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  google_mobile_ads: ^5.1.0  # 👈 Ads run karne ke liye naya package add kar diya hai
+  google_mobile_ads: 5.1.0  # 👈 Fixed version taaki 5G/Latest Android build error na aaye
 
 dev_dependencies:
   flutter_test:
