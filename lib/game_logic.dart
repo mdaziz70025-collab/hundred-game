@@ -20,7 +20,7 @@ class HundredGameLogic {
   
   int totalRoundsPlayed = 0;
   Map<String, int> playerWinsMap = {};
-  List<RoundHistory> roundHistoryList = []; // SCORE HISTORY LOG
+  List<RoundHistory> roundHistoryList = [];
 
   bool isCardHiddenForPass = false;
   String firstTurnNotice = "";
@@ -143,20 +143,8 @@ class HundredGameLogic {
       if (mode == GameMode.offline) {
         isCardHiddenForPass = true;
       }
-      checkAutoPlayLastCard();
     } else {
       evaluateRoundWinner();
-    }
-  }
-
-  void checkAutoPlayLastCard() {
-    bool allHaveOneCard = players.every((p) => p.hand.length == 1);
-    if (allHaveOneCard && currentRoundCards.length < totalPlayers) {
-      Player current = players[currentPlayerIndex];
-      if (current.hand.isNotEmpty) {
-        int autoCard = current.hand.first;
-        playCard(autoCard);
-      }
     }
   }
 
@@ -184,7 +172,6 @@ class HundredGameLogic {
       
       playerWinsMap[winnerNameStr] = (playerWinsMap[winnerNameStr] ?? 0) + 1;
       
-      // Add to History Log
       roundHistoryList.add(RoundHistory(
         roundNumber: totalRoundsPlayed,
         winnerName: winnerNameStr,
