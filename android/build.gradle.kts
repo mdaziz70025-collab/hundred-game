@@ -4,6 +4,7 @@ allprojects {
         mavenCentral()
     }
 }
+
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
@@ -14,8 +15,21 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// 👈 Yeh block added hai: Google Mobile Ads ke namespace/all configuration issue ko fix karne ke liye
+subprojects {
+    afterEvaluate {
+        if (plugins.hasPlugin("com.android.library") || plugins.hasPlugin("com.android.application")) {
+            val android = extensions.findByName("android") as? com.android.build.gradle.BaseExtension
+            android?.apply {
+                compileSdkVersion(34)
+            }
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {
