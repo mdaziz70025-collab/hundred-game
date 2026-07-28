@@ -191,7 +191,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       currentDealingCardIndex = 0;
     });
 
-    // 🎯 Host generates a master deck and splits unique cards to all players on Firebase
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       game.dealNewDeck();
       
@@ -298,6 +297,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _handleCardTap(int cardValue) async {
     Player current = game.players[game.currentPlayerIndex];
 
+    // Check Legal Move
     if (game.isFirstRound) {
       if (current.hand.contains(5) && cardValue != 5) {
         setState(() => game.warningMsg = "Pehle 5 number card hi chalna hoga!");
@@ -326,13 +326,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       game.warningMsg = "";
     });
 
-    await Future.delayed(Duration(milliseconds: 350));
+    await Future.delayed(Duration(milliseconds: 300));
 
     if (!mounted) return;
 
+    // Apply move in local game logic
     game.playCard(cardValue);
 
-    // 🎯 Realtime Move Push to Firebase
+    // 🎯 Realtime Move Push to Firebase (Instant Table Sync)
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
       for (var player in game.players) {
@@ -341,8 +342,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "hands": handsSyncMap,
-        "tableCards": game.currentRoundCards,
-        "tableOwners": game.playedCardOwners,
+        "tableCards": List<int>.from(game.currentRoundCards),
+        "tableOwners": List<String>.from(game.playedCardOwners),
         "turnIndex": game.currentPlayerIndex,
       });
     }
