@@ -44,6 +44,8 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
         "players": [name],
         "targetScore": 100,
         "status": "waiting",
+        "currentDealerIndex": 0,
+        "totalRoundsPlayed": 1,
         "createdAt": ServerValue.timestamp,
       });
 
@@ -133,15 +135,15 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
             String hostName = roomData['hostName'] ?? "";
 
             if (status == "playing") {
-              // Host (Room Owner) is fixed at Index 0 for First Round Deal
-              List<String> finalPlayersOrder = [];
-              if (players.contains(hostName)) {
-                finalPlayersOrder.add(hostName);
-                for (var p in players) {
-                  if (p != hostName) finalPlayersOrder.add(p);
+              // Reorder players so local user is always at index 0 for UI rendering
+              List<String> orderedPlayers = List<String>.from(players);
+              int myIndex = orderedPlayers.indexOf(currentUserName);
+              if (myIndex != -1 && myIndex != 0) {
+                List<String> rotated = [];
+                for (int i = 0; i < orderedPlayers.length; i++) {
+                  rotated.add(orderedPlayers[(myIndex + i) % orderedPlayers.length]);
                 }
-              } else {
-                finalPlayersOrder = List.from(players);
+                orderedPlayers = rotated;
               }
 
               Future.microtask(() {
@@ -151,10 +153,12 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
                   MaterialPageRoute(
                     builder: (context) => GameScreen(
                       mode: GameMode.friend,
-                      totalPlayers: finalPlayersOrder.length,
+                      totalPlayers: orderedPlayers.length,
                       targetScore: roomData['targetScore'] ?? 100,
-                      playerNames: finalPlayersOrder,
+                      playerNames: orderedPlayers,
                       isHost: isHost,
+                      roomCode: roomCode, // 👈 Room Code Pass
+                      myPlayerName: currentUserName, // 👈 Player Name Pass
                     ),
                   ),
                 );
@@ -185,7 +189,7 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
                   ...players.map((p) => ListTile(
                         dense: true,
                         leading: Icon(Icons.person, color: p == hostName ? Colors.amber : Colors.white70),
-                        title: Text("$p ${p == hostName ? '(Host/Dealer)' : ''}", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        title: Text("$p ${p == hostName ? '(Host)' : ''}", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       )),
                 ],
               ),
