@@ -89,13 +89,44 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
       if (roomPlayers.isNotEmpty) {
         String dealer = roomPlayers[currentDealerIdx % roomPlayers.length];
+        
         if (mounted) {
           setState(() {
             currentDealerName = dealer;
-            if (firebaseDealtStatus && !cardsDealt) {
-              cardsDealt = true;
-            }
           });
+        }
+
+        // Realtime Deck & Hand Sync
+        if (firebaseDealtStatus && roomData['hands'] != null) {
+          Map handsMap = roomData['hands'] as Map;
+          
+          for (int p = 0; p < game.players.length; p++) {
+            String pName = game.players[p].name;
+            if (handsMap.containsKey(pName)) {
+              List<int> pHand = List<int>.from(handsMap[pName] ?? []);
+              game.players[p].hand = pHand;
+            }
+          }
+
+          // Table cards sync
+          if (roomData['tableCards'] != null) {
+            List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
+            List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
+            game.currentRoundCards = tableCards;
+            game.playedCardOwners = tableOwners;
+          }
+
+          if (roomData['turnIndex'] != null) {
+            game.currentPlayerIndex = roomData['turnIndex'];
+          }
+
+          if (!cardsDealt) {
+            setState(() {
+              cardsDealt = true;
+            });
+          } else {
+            setState(() {});
+          }
         }
       }
     });
@@ -160,8 +191,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       currentDealingCardIndex = 0;
     });
 
+    // 🎯 Host generates a master deck and splits unique cards to all players on Firebase
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
-      await _dbRef.child("rooms").child(widget.roomCode).update({"cardsDealt": true});
+      game.dealNewDeck();
+      
+      Map<String, List<int>> handsSyncMap = {};
+      for (var player in game.players) {
+        handsSyncMap[player.name] = player.hand;
+      }
+
+      await _dbRef.child("rooms").child(widget.roomCode).update({
+        "cardsDealt": true,
+        "hands": handsSyncMap,
+        "tableCards": [],
+        "tableOwners": [],
+        "turnIndex": game.currentPlayerIndex,
+      });
     }
 
     int cardsPerPlayer = (widget.totalPlayers == 2) ? 10 : (widget.totalPlayers == 3 ? 6 : 5);
@@ -285,10 +330,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (!mounted) return;
 
+    game.playCard(cardValue);
+
+    // 🎯 Realtime Move Push to Firebase
+    if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
+      Map<String, List<int>> handsSyncMap = {};
+      for (var player in game.players) {
+        handsSyncMap[player.name] = player.hand;
+      }
+
+      await _dbRef.child("rooms").child(widget.roomCode).update({
+        "hands": handsSyncMap,
+        "tableCards": game.currentRoundCards,
+        "tableOwners": game.playedCardOwners,
+        "turnIndex": game.currentPlayerIndex,
+      });
+    }
+
     setState(() {
       isCardFlying = false;
       flyingCardValue = null;
-      game.playCard(cardValue);
     });
 
     _checkAndPlayNextTurn();
@@ -816,7 +877,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       label: Text("START NEXT BAJI (RE-DEAL)", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
                       onPressed: () async {
                         if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
-                          // Rotate Dealer on Firebase for next round
                           DataSnapshot snap = await _dbRef.child("rooms").child(widget.roomCode).get();
                           if (snap.exists) {
                             Map data = snap.value as Map;
@@ -827,6 +887,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                             await _dbRef.child("rooms").child(widget.roomCode).update({
                               "currentDealerIndex": nextDealer,
                               "cardsDealt": false,
+                              "tableCards": [],
+                              "tableOwners": [],
                             });
                           }
                         }
@@ -876,7 +938,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 width: double.infinity,
                 height: double.infinity,
                 child: Column(
-                  mainAxisAlignment: Map.from({}) == {} ? MainAxisAlignment.center : MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text("🎆 👑 🎆", style: TextStyle(fontSize: 40)),
                     SizedBox(height: 10),
