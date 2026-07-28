@@ -96,7 +96,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           });
         }
 
-        // Realtime Deck & Hand Sync
         if (firebaseDealtStatus && roomData['hands'] != null) {
           Map handsMap = roomData['hands'] as Map;
           
@@ -108,7 +107,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             }
           }
 
-          // Table cards sync
           if (roomData['tableCards'] != null) {
             List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
             List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
@@ -250,54 +248,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
       return;
     }
-
-    if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
-      await Future.delayed(Duration(milliseconds: 700));
-      if (!mounted) return;
-
-      List<int> playableCards = [];
-
-      for (int card in current.hand) {
-        bool isLegal = true;
-
-        if (game.isFirstRound) {
-          if (current.hand.contains(5) && card != 5) isLegal = false;
-          if (widget.totalPlayers == 3 && current.hand.contains(15) && card != 15) isLegal = false;
-        }
-
-        if (game.currentRoundCards.isNotEmpty && isLegal) {
-          int highestOnTable = game.currentRoundCards.reduce((a, b) => a > b ? a : b);
-          bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
-          if (hasHigherCard && card < highestOnTable) {
-            isLegal = false;
-          }
-        }
-
-        if (isLegal) {
-          playableCards.add(card);
-        }
-      }
-
-      int selectedCard;
-      if (playableCards.isNotEmpty) {
-        playableCards.sort();
-        if (game.currentRoundCards.isNotEmpty) {
-          selectedCard = playableCards.last;
-        } else {
-          selectedCard = playableCards.first;
-        }
-      } else {
-        selectedCard = current.hand.first;
-      }
-
-      _handleCardTap(selectedCard);
-    }
   }
 
   void _handleCardTap(int cardValue) async {
     Player current = game.players[game.currentPlayerIndex];
 
-    // Check Legal Move
     if (game.isFirstRound) {
       if (current.hand.contains(5) && cardValue != 5) {
         setState(() => game.warningMsg = "Pehle 5 number card hi chalna hoga!");
@@ -330,10 +285,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (!mounted) return;
 
-    // Apply move in local game logic
     game.playCard(cardValue);
 
-    // 🎯 Realtime Move Push to Firebase (Instant Table Sync)
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
       for (var player in game.players) {
@@ -556,6 +509,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
+
+    // 🎯 Pass & Play Fix: Show bottom player cards ONLY if it's their turn
+    if (widget.mode == GameMode.passAndPlay) {
+      if (playerIndex == game.currentPlayerIndex) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: p.hand.map((cardValue) {
+              return _buildPlayingCard(
+                value: cardValue,
+                onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
+              );
+            }).toList(),
+          ),
+        );
+      } else {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(p.hand.length, (_) => _buildHiddenCard()),
+        );
+      }
+    }
 
     if (widget.mode == GameMode.friend) {
       if (playerIndex == 0) {
