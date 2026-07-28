@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart'; // 👈 Firebase Core Package Import
 import 'game_models.dart';
 import 'game_screen.dart';
-import 'friend_room_screen.dart'; // 👈 Friend Room Screen Import Kiya Gaya
+import 'friend_room_screen.dart';
 
-void main() {
+void main() async {
+  // 👈 Firebase Initialization code (White Screen Crash Fix)
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
   runApp(HundredGameApp());
 }
 
@@ -126,7 +131,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // GAME MODE LAUNCHER
   void _startMatchWithOptions(String modeType) {
     if (modeType == 'FRIENDS') {
-      // 👈 FRIENDS Button click hote hi FriendRoomScreen par bhejega
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => FriendRoomScreen()),
@@ -289,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 20),
 
-              // 2. LUDO KING STYLE GAME MODE BUTTONS
+              // 2. GAME MODE BUTTONS
               Text("🎮 Select Game Mode", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
               SizedBox(height: 12),
 
@@ -311,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 20),
 
-              // 3. GAME SETTINGS (PLAYERS & TARGET)
+              // 3. GAME SETTINGS
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Color(0xFF1E293B), borderRadius: BorderRadius.circular(15)),
