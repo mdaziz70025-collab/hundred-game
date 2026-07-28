@@ -115,10 +115,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool get _canCurrentPlayerDeal {
     if (widget.mode != GameMode.friend) return true;
     
-    String currentDealerName = game.players[_currentDealerIndex].name;
-    String myName = game.players[0].name;
+    // Always allow if you are the room Host OR if Dealer Name matches your Name
+    if (widget.isHost) return true;
+
+    String currentDealerName = game.players[_currentDealerIndex].name.trim().toLowerCase();
+    String myName = game.players[0].name.trim().toLowerCase();
     
-    return (myName.trim().toLowerCase() == currentDealerName.trim().toLowerCase()) || (widget.isHost && game.totalRoundsPlayed == 1);
+    return myName == currentDealerName;
   }
 
   void _startDealingAnimation() async {
@@ -499,7 +502,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             children: p.hand.map((cardValue) {
               return _buildPlayingCard(
                 value: cardValue,
-                onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue), // Fixed: 'cardValue' used here
+                onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
               );
             }).toList(),
           ),
@@ -651,6 +654,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                           textAlign: TextAlign.center,
                                           style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12),
                                         ),
+                                        SizedBox(height: 6),
+                                        GestureDetector(
+                                          onTap: _startDealingAnimation,
+                                          child: Text(
+                                            "Tap to Force Deal",
+                                            style: TextStyle(color: Colors.amberAccent, fontSize: 10, decoration: TextDecoration.underline),
+                                          ),
+                                        )
                                       ],
                                     ),
                                   ))
