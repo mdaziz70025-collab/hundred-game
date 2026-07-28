@@ -142,6 +142,7 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
                       totalPlayers: players.length,
                       targetScore: roomData['targetScore'] ?? 100,
                       playerNames: players,
+                      isHost: isHost, // 👈 Host flag pass kar diya
                     ),
                   ),
                 );
