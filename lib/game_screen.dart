@@ -438,14 +438,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return textWidget;
   }
 
-  // 🎯 Friend Mode me Sabhi Ka Card Niche Hi Dikhega (Index 0 Bottom Area Par)
+  // 🎯 Updated Hand View Logic:
   Widget _buildPlayerHandView(int playerIndex, {bool isVertical = false}) {
     if (!cardsDealt) return SizedBox.shrink();
 
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
 
-    // 🤝 Friend Mode Rules: Top, Left, Right par cards bilkul mat dikhao (Sirf Bottom par player 0 ka hand dikhao)
+    // 🤝 Friend Mode Rules: Sirf bottom player (Index 0) ka hand dikhega, baki hidden
     if (widget.mode == GameMode.friend) {
       if (playerIndex == 0) {
         return SingleChildScrollView(
@@ -461,13 +461,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ),
         );
       } else {
-        // Baaki locations par card bilkul nahi dikhega (Sirf label rahega)
         return SizedBox.shrink();
       }
     }
 
-    // 👥 Pass N Play / Offline Rules:
-    bool shouldShowCards = (isCurrentTurn || playerIndex == 0);
+    // 👥 Pass N Play / Offline Mode Rules:
+    // Player 0 (Bottom) KA CARD HUMESHA OPEN RAHEGA
+    // Baaki Players (1, 2, 3) ke cards unka TURN aane par open honge, nahi toh hidden rahenge!
+    bool shouldShowCards = (playerIndex == 0) || isCurrentTurn;
 
     if (shouldShowCards) {
       if (isVertical) {
@@ -572,7 +573,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Column(
               children: [
                 SizedBox(height: 25),
-                // 🔝 TOP PLAYER NAME (PASS N PLAY LOCATION)
                 if (game.players.length >= 3)
                   Column(
                     children: [
@@ -585,7 +585,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // 👈 LEFT PLAYER NAME (PASS N PLAY LOCATION)
                     if (game.players.length == 4)
                       Padding(
                         padding: const EdgeInsets.only(left: 6.0),
@@ -599,8 +598,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       )
                     else
                       SizedBox(width: 40),
-
-                    // 🎯 TABLE CENTER MAT
                     Container(
                       width: 175,
                       height: 175,
@@ -680,8 +677,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                       ),
                       ),
                     ),
-
-                    // 👉 RIGHT PLAYER NAME (PASS N PLAY LOCATION)
                     if (game.players.length >= 2)
                       Padding(
                         padding: const EdgeInsets.only(right: 6.0),
@@ -698,8 +693,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ],
                 ),
                 SizedBox(height: 25),
-
-                // 🔻 BOTTOM PLAYER (YOU) & CARDS LOCATION
                 _buildPlayerLabel(game.players[0], 0),
                 SizedBox(height: 8),
                 _buildPlayerHandView(0),
