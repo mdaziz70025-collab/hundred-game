@@ -1,4 +1,4 @@
-enum GameMode { offline, online, friend } // 👈 'friend' mode yahan add kar diya hai
+enum GameMode { passNPlay, friend, offline, online }
 
 class Player {
   final String id;
@@ -56,4 +56,16 @@ class UserProfile {
   });
 
   double get winRate => totalMatches > 0 ? ((totalWins / totalMatches) * 100) : 0.0;
+}
+
+class RoundHistory {
+  final int roundNumber;
+  final String winnerName;
+  final int points;
+
+  RoundHistory({
+    required this.roundNumber,
+    required this.winnerName,
+    required this.points,
+  });
 }
