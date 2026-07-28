@@ -9,12 +9,14 @@ class GameScreen extends StatefulWidget {
   final int totalPlayers;
   final int targetScore;
   final List<String> playerNames;
+  final bool isHost; // 👈 Added isHost parameter
 
   GameScreen({
     required this.mode,
     required this.totalPlayers,
     required this.targetScore,
     required this.playerNames,
+    this.isHost = true, // Default true for offline/computer
   });
 
   @override
@@ -144,54 +146,58 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _checkAndPlayNextTurn() async {
     if (!cardsDealt || isDealing || game.isDeckFinished || game.winnerName.isNotEmpty) return;
 
+    Player current = game.players[game.currentPlayerIndex];
+
     bool isLastRound = game.players.every((p) => p.hand.length == 1);
-
     if (isLastRound) {
-      await Future.delayed(Duration(milliseconds: 600));
+      await Future.delayed(Duration(milliseconds: 500));
       if (!mounted) return;
-
-      Player current = game.players[game.currentPlayerIndex];
       if (current.hand.isNotEmpty) {
         _handleCardTap(current.hand.first);
       }
       return;
     }
 
-    Player current = game.players[game.currentPlayerIndex];
     if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
-      await Future.delayed(Duration(milliseconds: 800));
+      await Future.delayed(Duration(milliseconds: 700));
       if (!mounted) return;
 
-      int? selectedCardToPlay;
-      List<int> validCards = [];
+      List<int> playableCards = [];
 
       for (int card in current.hand) {
-        bool isValid = true;
+        bool isLegal = true;
 
         if (game.isFirstRound) {
-          if (current.hand.contains(5) && card != 5) isValid = false;
-          if (widget.totalPlayers == 3 && current.hand.contains(15) && card != 15) isValid = false;
+          if (current.hand.contains(5) && card != 5) isLegal = false;
+          if (widget.totalPlayers == 3 && current.hand.contains(15) && card != 15) isLegal = false;
         }
 
-        if (game.currentRoundCards.isNotEmpty && isValid) {
+        if (game.currentRoundCards.isNotEmpty && isLegal) {
           int highestOnTable = game.currentRoundCards.reduce((a, b) => a > b ? a : b);
           bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
-          if (hasHigherCard && card < highestOnTable) isValid = false;
+          if (hasHigherCard && card < highestOnTable) {
+            isLegal = false;
+          }
         }
 
-        if (isValid) validCards.add(card);
+        if (isLegal) {
+          playableCards.add(card);
+        }
       }
 
-      if (validCards.isNotEmpty) {
-        validCards.sort();
-        selectedCardToPlay = validCards.first;
-      } else if (current.hand.isNotEmpty) {
-        selectedCardToPlay = current.hand.first;
+      int selectedCard;
+      if (playableCards.isNotEmpty) {
+        playableCards.sort();
+        if (game.currentRoundCards.isNotEmpty) {
+          selectedCard = playableCards.last;
+        } else {
+          selectedCard = playableCards.first;
+        }
+      } else {
+        selectedCard = current.hand.first;
       }
 
-      if (selectedCardToPlay != null) {
-        _handleCardTap(selectedCardToPlay);
-      }
+      _handleCardTap(selectedCard);
     }
   }
 
@@ -438,14 +444,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return textWidget;
   }
 
-  // 🎯 Updated Hand View Logic:
   Widget _buildPlayerHandView(int playerIndex, {bool isVertical = false}) {
     if (!cardsDealt) return SizedBox.shrink();
 
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
 
-    // 🤝 Friend Mode Rules: Sirf bottom player (Index 0) ka hand dikhega, baki hidden
     if (widget.mode == GameMode.friend) {
       if (playerIndex == 0) {
         return SingleChildScrollView(
@@ -465,9 +469,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
     }
 
-    // 👥 Pass N Play / Offline Mode Rules:
-    // Player 0 (Bottom) KA CARD HUMESHA OPEN RAHEGA
-    // Baaki Players (1, 2, 3) ke cards unka TURN aane par open honge, nahi toh hidden rahenge!
     bool shouldShowCards = (playerIndex == 0) || isCurrentTurn;
 
     if (shouldShowCards) {
@@ -617,15 +618,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       ),
                       child: Center(
                         child: !cardsDealt && !isDealing
-                            ? ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.amber,
-                                  foregroundColor: Colors.black,
-                                ),
-                                icon: Icon(Icons.style),
-                                label: Text("DEAL CARDS", style: TextStyle(fontWeight: FontWeight.bold)),
-                                onPressed: _startDealingAnimation,
-                              )
+                            ? (widget.isHost
+                                ? ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.amber,
+                                      foregroundColor: Colors.black,
+                                    ),
+                                    icon: Icon(Icons.style),
+                                    label: Text("DEAL CARDS", style: TextStyle(fontWeight: FontWeight.bold)),
+                                    onPressed: _startDealingAnimation,
+                                  )
+                                : Container(
+                                    padding: EdgeInsets.all(8),
+                                    child: Text(
+                                      "Waiting for Host to Deal...",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                  ))
                             : isDealing
                                 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
