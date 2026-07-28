@@ -484,10 +484,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (shouldShowCards) {
       if (isVertical) {
         return Column(
-          children: List.generate(p.hand.length, (i) => _buildPlayingCard(
-            value: p.hand[i],
-            onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(p.hand[i]),
-          )),
+          children: p.hand.map((cardValue) {
+            return _buildPlayingCard(
+              value: cardValue,
+              onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
+            );
+          }).toList(),
         );
       } else {
         return SingleChildScrollView(
@@ -497,7 +499,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             children: p.hand.map((cardValue) {
               return _buildPlayingCard(
                 value: cardValue,
-                onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(p.hand[i]),
+                onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue), // Fixed: 'cardValue' used here
               );
             }).toList(),
           ),
