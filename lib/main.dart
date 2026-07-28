@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'game_models.dart';
 import 'game_screen.dart';
+import 'friend_room_screen.dart'; // 👈 Friend Room Screen Import Kiya Gaya
 
 void main() {
   runApp(HundredGameApp());
@@ -122,11 +123,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // GAME MODE LAUNCHER (PASS N PLAY, COMPUTER, ONLINE, FRIENDS)
+  // GAME MODE LAUNCHER
   void _startMatchWithOptions(String modeType) {
-    if (modeType == 'ONLINE' || modeType == 'FRIENDS') {
+    if (modeType == 'FRIENDS') {
+      // 👈 FRIENDS Button click hote hi FriendRoomScreen par bhejega
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => FriendRoomScreen()),
+      );
+      return;
+    }
+
+    if (modeType == 'ONLINE') {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("🚀 Online & Friends mode coming soon in next update!"), backgroundColor: Colors.amber.shade800),
+        SnackBar(content: Text("🚀 Online mode coming soon in next update!"), backgroundColor: Colors.amber.shade800),
       );
       return;
     }
@@ -156,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: TextField(
                     controller: controllers[index],
                     style: TextStyle(color: Colors.white),
-                    enabled: !(modeType == 'COMPUTER' && index > 0), // Disable editing for bot names if desired, or keep open
+                    enabled: !(modeType == 'COMPUTER' && index > 0),
                     decoration: InputDecoration(
                       labelText: index == 0 ? "Player 1 (You)" : "Player ${index + 1} Name",
                       labelStyle: TextStyle(color: Colors.white70, fontSize: 13),
