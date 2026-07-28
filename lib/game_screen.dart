@@ -107,16 +107,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  // 🔄 Dealer Rotation Check Logic
+  // Dealer rotation calculation
   int get _currentDealerIndex {
-    // Har baji/round par dealer 0 -> 1 -> 2 -> 3 rotate hoga
     return (game.totalRoundsPlayed - 1) % widget.totalPlayers;
   }
 
   bool get _canCurrentPlayerDeal {
-    if (widget.mode != GameMode.friend) return true; // Offline me hamesha deal allow
-    // Friend mode me check karo ki abhi kis player ki dealer baari hai
-    return _currentDealerIndex == 0; // Index 0 aap khud hain aapki screen par
+    if (widget.mode != GameMode.friend) return true;
+    
+    String currentDealerName = game.players[_currentDealerIndex].name;
+    String myName = game.players[0].name;
+    
+    return (myName.trim().toLowerCase() == currentDealerName.trim().toLowerCase()) || (widget.isHost && game.totalRoundsPlayed == 1);
   }
 
   void _startDealingAnimation() async {
@@ -399,7 +401,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Widget _buildPlayerLabel(Player player, int playerIndex, {bool isRotated = false, int quarterTurns = 0}) {
     bool isCurrentTurn = cardsDealt && (game.currentPlayerIndex == playerIndex);
     bool isReceivingCard = isDealing && (currentlyDealingPlayerIndex == playerIndex);
-    bool isDealer = (_currentDealerIndex == playerIndex); // 👈 Dealer Tag
+    bool isDealer = (_currentDealerIndex == playerIndex);
     int wins = game.playerWinsMap[player.name] ?? 0;
 
     Widget textWidget = Container(
@@ -421,7 +423,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (isDealer) ...[
-                Text("🎴 ", style: TextStyle(fontSize: 10)), // Dealer Icon
+                Text("🎴 ", style: TextStyle(fontSize: 10)),
               ],
               Text(
                 "${player.name} : ${player.currentScore} pts",
@@ -495,7 +497,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             children: p.hand.map((cardValue) {
               return _buildPlayingCard(
                 value: cardValue,
-                onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
+                onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(p.hand[i]),
               );
             }).toList(),
           ),
@@ -639,10 +641,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                   )
                                 : Container(
                                     padding: EdgeInsets.all(8),
-                                    child: Text(
-                                      "Waiting for $currentDealerName to Deal...", // 👈 Rotation Dealer Info
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          "Waiting for $currentDealerName to Deal...",
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12),
+                                        ),
+                                      ],
                                     ),
                                   ))
                             : isDealing
@@ -724,7 +731,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     child: Text(game.warningMsg, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
 
-                // Bottom Banner Ad Box
                 if (_isBannerAdLoaded && _bannerAd != null)
                   Container(
                     alignment: Alignment.center,
