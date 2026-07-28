@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => GameScreen(
-          mode: GameMode.passNPlay, // 👈 Fixed GameMode name
+          mode: GameMode.passNPlay,
           totalPlayers: totalPlayers,
           targetScore: targetScore,
           playerNames: defaultNames,
