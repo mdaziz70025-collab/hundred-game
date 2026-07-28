@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'game_models.dart';
 import 'game_logic.dart';
 
@@ -10,6 +12,8 @@ class GameScreen extends StatefulWidget {
   final int targetScore;
   final List<String> playerNames;
   final bool isHost;
+  final String roomCode;
+  final String myPlayerName;
 
   GameScreen({
     required this.mode,
@@ -17,6 +21,8 @@ class GameScreen extends StatefulWidget {
     required this.targetScore,
     required this.playerNames,
     this.isHost = true,
+    this.roomCode = "",
+    this.myPlayerName = "",
   });
 
   @override
@@ -25,6 +31,8 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late HundredGameLogic game;
+  final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();
+  StreamSubscription<DatabaseEvent>? _roomSubscription;
 
   bool isDealing = false;
   bool cardsDealt = false;
@@ -35,11 +43,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   bool isCardFlying = false;
   int? flyingCardValue;
+  String currentDealerName = "";
 
   late AnimationController _turnAnimationController;
   late Animation<double> _turnScaleAnimation;
 
-  // AdMob Variables
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
   final String _bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
@@ -64,6 +72,33 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _turnScaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _turnAnimationController, curve: Curves.easeInOut),
     );
+
+    if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
+      _listenToFirebaseRoom();
+    }
+  }
+
+  void _listenToFirebaseRoom() {
+    _roomSubscription = _dbRef.child("rooms").child(widget.roomCode).onValue.listen((event) {
+      if (!event.snapshot.exists || event.snapshot.value == null) return;
+
+      Map<dynamic, dynamic> roomData = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+      List<String> roomPlayers = List<String>.from(roomData['players'] ?? []);
+      int currentDealerIdx = roomData['currentDealerIndex'] ?? 0;
+      bool firebaseDealtStatus = roomData['cardsDealt'] ?? false;
+
+      if (roomPlayers.isNotEmpty) {
+        String dealer = roomPlayers[currentDealerIdx % roomPlayers.length];
+        if (mounted) {
+          setState(() {
+            currentDealerName = dealer;
+            if (firebaseDealtStatus && !cardsDealt) {
+              cardsDealt = true;
+            }
+          });
+        }
+      }
+    });
   }
 
   void _loadBannerAd() {
@@ -88,6 +123,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _roomSubscription?.cancel();
     _bannerAd?.dispose();
     _turnAnimationController.dispose();
     super.dispose();
@@ -107,21 +143,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  // Dealer rotation calculation
-  int get _currentDealerIndex {
-    return (game.totalRoundsPlayed - 1) % widget.totalPlayers;
-  }
-
   bool get _canCurrentPlayerDeal {
     if (widget.mode != GameMode.friend) return true;
     
-    // Always allow if you are the room Host OR if Dealer Name matches your Name
-    if (widget.isHost) return true;
-
-    String currentDealerName = game.players[_currentDealerIndex].name.trim().toLowerCase();
-    String myName = game.players[0].name.trim().toLowerCase();
-    
-    return myName == currentDealerName;
+    if (currentDealerName.isNotEmpty) {
+      return widget.myPlayerName.trim().toLowerCase() == currentDealerName.trim().toLowerCase();
+    }
+    return widget.isHost;
   }
 
   void _startDealingAnimation() async {
@@ -131,6 +159,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       cardsDealt = false;
       currentDealingCardIndex = 0;
     });
+
+    if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
+      await _dbRef.child("rooms").child(widget.roomCode).update({"cardsDealt": true});
+    }
 
     int cardsPerPlayer = (widget.totalPlayers == 2) ? 10 : (widget.totalPlayers == 3 ? 6 : 5);
 
@@ -404,7 +436,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Widget _buildPlayerLabel(Player player, int playerIndex, {bool isRotated = false, int quarterTurns = 0}) {
     bool isCurrentTurn = cardsDealt && (game.currentPlayerIndex == playerIndex);
     bool isReceivingCard = isDealing && (currentlyDealingPlayerIndex == playerIndex);
-    bool isDealer = (_currentDealerIndex == playerIndex);
+    bool isDealer = currentDealerName.isNotEmpty && (player.name.trim().toLowerCase() == currentDealerName.trim().toLowerCase());
     int wins = game.playerWinsMap[player.name] ?? 0;
 
     Widget textWidget = Container(
@@ -525,7 +557,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     Player activePlayer = game.players[game.currentPlayerIndex];
-    String currentDealerName = game.players[_currentDealerIndex].name;
+    String dealerDisplayName = currentDealerName.isNotEmpty ? currentDealerName : game.players[0].name;
 
     return WillPopScope(
       onWillPop: _showExitDialog,
@@ -650,18 +682,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          "Waiting for $currentDealerName to Deal...",
+                                          "Waiting for $dealerDisplayName to Deal...",
                                           textAlign: TextAlign.center,
                                           style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12),
                                         ),
-                                        SizedBox(height: 6),
-                                        GestureDetector(
-                                          onTap: _startDealingAnimation,
-                                          child: Text(
-                                            "Tap to Force Deal",
-                                            style: TextStyle(color: Colors.amberAccent, fontSize: 10, decoration: TextDecoration.underline),
-                                          ),
-                                        )
                                       ],
                                     ),
                                   ))
@@ -790,7 +814,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       ),
                       icon: Icon(Icons.style, color: Colors.white),
                       label: Text("START NEXT BAJI (RE-DEAL)", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                      onPressed: () {
+                      onPressed: () async {
+                        if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
+                          // Rotate Dealer on Firebase for next round
+                          DataSnapshot snap = await _dbRef.child("rooms").child(widget.roomCode).get();
+                          if (snap.exists) {
+                            Map data = snap.value as Map;
+                            List players = data['players'] ?? [];
+                            int currentDealer = data['currentDealerIndex'] ?? 0;
+                            int nextDealer = (currentDealer + 1) % players.length;
+
+                            await _dbRef.child("rooms").child(widget.roomCode).update({
+                              "currentDealerIndex": nextDealer,
+                              "cardsDealt": false,
+                            });
+                          }
+                        }
                         setState(() {
                           game.dealNewDeck();
                           cardsDealt = false;
@@ -837,7 +876,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 width: double.infinity,
                 height: double.infinity,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: Map.from({}) == {} ? MainAxisAlignment.center : MainAxisAlignment.center,
                   children: [
                     Text("🎆 👑 🎆", style: TextStyle(fontSize: 40)),
                     SizedBox(height: 10),
