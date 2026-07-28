@@ -34,6 +34,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int totalPlayers = 2;
   int targetScore = 100;
+  UserProfile userProfile = UserProfile();
 
   void _startPassAndPlay() {
     List<String> defaultNames = List.generate(totalPlayers, (index) => "Player ${index + 1}");
@@ -77,25 +78,47 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.style, size: 80, color: Colors.amber),
-              SizedBox(height: 10),
-              Text(
-                "100 Card Game",
-                style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 1),
+              // User Profile Banner
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.amber.shade700, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Colors.amber,
+                      child: Text(userProfile.avatar, style: TextStyle(fontSize: 26)),
+                    ),
+                    SizedBox(width: 15),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(userProfile.name, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 4),
+                        Text("Win Rate: ${userProfile.winRate.toStringAsFixed(1)}%", style: TextStyle(color: Colors.amberAccent, fontSize: 13)),
+                      ],
+                    ),
+                  ],
+                ),
               ),
+
               SizedBox(height: 25),
 
-              // Select Players Option
+              // Select Players Section
               Container(
-                padding: EdgeInsets.all(12),
+                padding: EdgeInsets.all(14),
                 decoration: BoxDecoration(color: Color(0xFF0F172A), borderRadius: BorderRadius.circular(15)),
                 child: Column(
                   children: [
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("Select Players:", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      child: Text("Select Players:", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
                     ),
-                    SizedBox(height: 8),
+                    SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [2, 3, 4].map((count) {
@@ -104,9 +127,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isSelected ? Colors.amber : Color(0xFF1B2A47),
                             foregroundColor: isSelected ? Colors.black : Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () => setState(() => totalPlayers = count),
-                          child: Text("$count Players"),
+                          child: Text("$count Players", style: TextStyle(fontWeight: FontWeight.bold)),
                         );
                       }).toList(),
                     )
@@ -116,17 +140,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 15),
 
-              // Select Target Score Option
+              // Select Target Score Section
               Container(
-                padding: EdgeInsets.all(12),
+                padding: EdgeInsets.all(14),
                 decoration: BoxDecoration(color: Color(0xFF0F172A), borderRadius: BorderRadius.circular(15)),
                 child: Column(
                   children: [
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("Target Score:", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      child: Text("Target Score:", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
                     ),
-                    SizedBox(height: 8),
+                    SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [100, 200, 500].map((score) {
@@ -135,9 +159,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isSelected ? Colors.amber : Color(0xFF1B2A47),
                             foregroundColor: isSelected ? Colors.black : Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: () => setState(() => targetScore = score),
-                          child: Text("$score Pts"),
+                          child: Text("$score Pts", style: TextStyle(fontWeight: FontWeight.bold)),
                         );
                       }).toList(),
                     )
@@ -145,14 +170,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              SizedBox(height: 35),
+              SizedBox(height: 30),
 
               // 1. PASS & PLAY BUTTON
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.indigo.shade700,
                   padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  minimumSize: Size(double.infinity, 50),
+                  minimumSize: Size(double.infinity, 52),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: Icon(Icons.phone_android, color: Colors.white),
@@ -167,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade700,
                   padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  minimumSize: Size(double.infinity, 50),
+                  minimumSize: Size(double.infinity, 52),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: Icon(Icons.groups, color: Colors.white),
