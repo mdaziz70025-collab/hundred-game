@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "603420736879",
+    "firebase_url": "https://card100game-default-rtdb.firebaseio.com",
+    "project_id": "card100game",
+    "storage_bucket": "card100game.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:603420736879:android:9c23e1763cb4de70edbc9a",
+        "android_client_info": {
+          "package_name": "com.example.hundred_game"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAybeAfNK_Yg-FXrWRdnLwCGNFsFR8xs7Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
