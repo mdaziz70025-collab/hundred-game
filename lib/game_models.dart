@@ -1,4 +1,4 @@
-enum GameMode { offline, online }
+enum GameMode { offline, online, friend } // 👈 'friend' mode yahan add kar diya hai
 
 class Player {
   final String id;
@@ -14,6 +14,26 @@ class Player {
     required this.hand,
     this.currentScore = 0,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'avatar': avatar,
+      'hand': hand,
+      'currentScore': currentScore,
+    };
+  }
+
+  factory Player.fromJson(Map<dynamic, dynamic> json) {
+    return Player(
+      id: json['id'] ?? '',
+      name: json['name'] ?? 'Player',
+      avatar: json['avatar'] ?? '👑',
+      hand: List<int>.from(json['hand'] ?? []),
+      currentScore: json['currentScore'] ?? 0,
+    );
+  }
 }
 
 class UserProfile {
