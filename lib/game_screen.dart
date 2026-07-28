@@ -9,14 +9,14 @@ class GameScreen extends StatefulWidget {
   final int totalPlayers;
   final int targetScore;
   final List<String> playerNames;
-  final bool isHost; // 👈 Added isHost parameter
+  final bool isHost;
 
   GameScreen({
     required this.mode,
     required this.totalPlayers,
     required this.targetScore,
     required this.playerNames,
-    this.isHost = true, // Default true for offline/computer
+    this.isHost = true,
   });
 
   @override
@@ -105,6 +105,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       HapticFeedback.vibrate();
       SystemSound.play(SystemSoundType.alert);
     }
+  }
+
+  // 🔄 Dealer Rotation Check Logic
+  int get _currentDealerIndex {
+    // Har baji/round par dealer 0 -> 1 -> 2 -> 3 rotate hoga
+    return (game.totalRoundsPlayed - 1) % widget.totalPlayers;
+  }
+
+  bool get _canCurrentPlayerDeal {
+    if (widget.mode != GameMode.friend) return true; // Offline me hamesha deal allow
+    // Friend mode me check karo ki abhi kis player ki dealer baari hai
+    return _currentDealerIndex == 0; // Index 0 aap khud hain aapki screen par
   }
 
   void _startDealingAnimation() async {
@@ -387,6 +399,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Widget _buildPlayerLabel(Player player, int playerIndex, {bool isRotated = false, int quarterTurns = 0}) {
     bool isCurrentTurn = cardsDealt && (game.currentPlayerIndex == playerIndex);
     bool isReceivingCard = isDealing && (currentlyDealingPlayerIndex == playerIndex);
+    bool isDealer = (_currentDealerIndex == playerIndex); // 👈 Dealer Tag
     int wins = game.playerWinsMap[player.name] ?? 0;
 
     Widget textWidget = Container(
@@ -407,13 +420,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isCurrentTurn || isReceivingCard) ...[
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(color: Colors.amber, shape: BoxShape.circle),
-                ),
-                SizedBox(width: 4),
+              if (isDealer) ...[
+                Text("🎴 ", style: TextStyle(fontSize: 10)), // Dealer Icon
               ],
               Text(
                 "${player.name} : ${player.currentScore} pts",
@@ -426,8 +434,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ],
           ),
           Text(
-            "👑 Wins: $wins",
-            style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold),
+            "👑 Wins: $wins ${isDealer ? '(Dealer)' : ''}",
+            style: TextStyle(color: isDealer ? Colors.greenAccent : Colors.white70, fontSize: 9, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -510,6 +518,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     Player activePlayer = game.players[game.currentPlayerIndex];
+    String currentDealerName = game.players[_currentDealerIndex].name;
 
     return WillPopScope(
       onWillPop: _showExitDialog,
@@ -618,7 +627,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       ),
                       child: Center(
                         child: !cardsDealt && !isDealing
-                            ? (widget.isHost
+                            ? (_canCurrentPlayerDeal
                                 ? ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.amber,
@@ -631,7 +640,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 : Container(
                                     padding: EdgeInsets.all(8),
                                     child: Text(
-                                      "Waiting for Host to Deal...",
+                                      "Waiting for $currentDealerName to Deal...", // 👈 Rotation Dealer Info
                                       textAlign: TextAlign.center,
                                       style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12),
                                     ),
