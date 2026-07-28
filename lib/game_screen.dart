@@ -510,7 +510,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
 
-    // 🎯 Pass & Play Fix (passNPlay)
     if (widget.mode == GameMode.passNPlay) {
       if (playerIndex == game.currentPlayerIndex) {
         return SingleChildScrollView(
