@@ -510,8 +510,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
 
-    // 🎯 Pass & Play Fix: Show bottom player cards ONLY if it's their turn
-    if (widget.mode == GameMode.passAndPlay) {
+    // 🎯 Pass & Play Fix (passNPlay)
+    if (widget.mode == GameMode.passNPlay) {
       if (playerIndex == game.currentPlayerIndex) {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
