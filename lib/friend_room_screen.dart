@@ -130,8 +130,20 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
             Map<dynamic, dynamic> roomData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
             List<String> players = List<String>.from(roomData['players'] ?? []);
             String status = roomData['status'] ?? "waiting";
+            String hostName = roomData['hostName'] ?? "";
 
             if (status == "playing") {
+              // Host (Room Owner) is fixed at Index 0 for First Round Deal
+              List<String> finalPlayersOrder = [];
+              if (players.contains(hostName)) {
+                finalPlayersOrder.add(hostName);
+                for (var p in players) {
+                  if (p != hostName) finalPlayersOrder.add(p);
+                }
+              } else {
+                finalPlayersOrder = List.from(players);
+              }
+
               Future.microtask(() {
                 Navigator.pop(context);
                 Navigator.pushReplacement(
@@ -139,10 +151,10 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
                   MaterialPageRoute(
                     builder: (context) => GameScreen(
                       mode: GameMode.friend,
-                      totalPlayers: players.length,
+                      totalPlayers: finalPlayersOrder.length,
                       targetScore: roomData['targetScore'] ?? 100,
-                      playerNames: players,
-                      isHost: isHost, // 👈 Host flag pass kar diya
+                      playerNames: finalPlayersOrder,
+                      isHost: isHost,
                     ),
                   ),
                 );
@@ -172,8 +184,8 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
                   SizedBox(height: 8),
                   ...players.map((p) => ListTile(
                         dense: true,
-                        leading: Icon(Icons.person, color: Colors.amber),
-                        title: Text(p, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        leading: Icon(Icons.person, color: p == hostName ? Colors.amber : Colors.white70),
+                        title: Text("$p ${p == hostName ? '(Host/Dealer)' : ''}", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       )),
                 ],
               ),
