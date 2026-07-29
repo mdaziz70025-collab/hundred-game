@@ -115,7 +115,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               game.playedCardOwners = tableOwners;
             }
 
-            // 🎯 Realtime Turn Sync Across Devices
             if (roomData['turnIndex'] != null) {
               int syncedTurn = roomData['turnIndex'];
               if (syncedTurn < game.players.length) {
@@ -201,10 +200,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       currentDealingCardIndex = 0;
     });
 
-    // 🎯 Step 1: New deck deal aur lowest card owner evaluate karo
     game.dealNewDeck();
 
-    // 🎯 Step 2: Firebase Database par exact turnIndex (5 number card wale ka) sync karo
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
       for (var player in game.players) {
@@ -216,7 +213,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         "hands": handsSyncMap,
         "tableCards": [],
         "tableOwners": [],
-        "turnIndex": game.currentPlayerIndex, // 👈 Fix: Lowest card player index sent to all!
+        "turnIndex": game.currentPlayerIndex,
       });
     }
 
@@ -345,7 +342,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     game.playCard(cardValue);
 
-    // 🎯 CARD MOVE SYNC: Firebase update triggers real-time move across connected devices
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
       for (var player in game.players) {
@@ -570,7 +566,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
 
-    // 🎯 ONLINE / FRIEND MODE: Player 0 (Aapka Device Player) hamesha apne cards dekh sakta hai
     if (widget.mode == GameMode.friend) {
       if (playerIndex == 0) {
         return SingleChildScrollView(
@@ -590,7 +585,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
     }
 
-    // PASS N PLAY MODE (Offline)
     bool shouldShowCards = isCurrentTurn && !game.isCardHiddenForPass;
 
     if (shouldShowCards) {
@@ -961,7 +955,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 width: double.infinity,
                 height: double.infinity,
                 child: Column(
-                  mainAxisAlignment: BuildAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text("🎆 👑 🎆", style: TextStyle(fontSize: 40)),
                     SizedBox(height: 10),
