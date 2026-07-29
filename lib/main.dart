@@ -36,14 +36,14 @@ class _HomeScreenState extends State<HomeScreen> {
   int targetScore = 100;
   UserProfile userProfile = UserProfile();
 
-  void _startPassAndPlay() {
+  void _startOfflineGame() {
     List<String> defaultNames = List.generate(totalPlayers, (index) => "Player ${index + 1}");
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => GameScreen(
-          mode: GameMode.passNPlay,
+          mode: GameMode.offline,
           totalPlayers: totalPlayers,
           targetScore: targetScore,
           playerNames: defaultNames,
@@ -78,7 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // User Profile Banner
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -108,7 +107,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 25),
 
-              // Select Players Section
               Container(
                 padding: EdgeInsets.all(14),
                 decoration: BoxDecoration(color: Color(0xFF0F172A), borderRadius: BorderRadius.circular(15)),
@@ -140,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 15),
 
-              // Select Target Score Section
               Container(
                 padding: EdgeInsets.all(14),
                 decoration: BoxDecoration(color: Color(0xFF0F172A), borderRadius: BorderRadius.circular(15)),
@@ -172,7 +169,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 30),
 
-              // 1. PASS & PLAY BUTTON
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.indigo.shade700,
@@ -182,12 +178,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 icon: Icon(Icons.phone_android, color: Colors.white),
                 label: Text("PASS & PLAY (OFFLINE)", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                onPressed: _startPassAndPlay,
+                onPressed: _startOfflineGame,
               ),
 
               SizedBox(height: 15),
 
-              // 2. PLAY WITH FRIENDS BUTTON
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade700,
