@@ -248,6 +248,48 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
       return;
     }
+
+    if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
+      await Future.delayed(Duration(milliseconds: 700));
+      if (!mounted) return;
+
+      List<int> playableCards = [];
+
+      for (int card in current.hand) {
+        bool isLegal = true;
+
+        if (game.isFirstRound) {
+          if (current.hand.contains(5) && card != 5) isLegal = false;
+          if (widget.totalPlayers == 3 && current.hand.contains(15) && card != 15) isLegal = false;
+        }
+
+        if (game.currentRoundCards.isNotEmpty && isLegal) {
+          int highestOnTable = game.currentRoundCards.reduce((a, b) => a > b ? a : b);
+          bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
+          if (hasHigherCard && card < highestOnTable) {
+            isLegal = false;
+          }
+        }
+
+        if (isLegal) {
+          playableCards.add(card);
+        }
+      }
+
+      int selectedCard;
+      if (playableCards.isNotEmpty) {
+        playableCards.sort();
+        if (game.currentRoundCards.isNotEmpty) {
+          selectedCard = playableCards.last;
+        } else {
+          selectedCard = playableCards.first;
+        }
+      } else {
+        selectedCard = current.hand.first;
+      }
+
+      _handleCardTap(selectedCard);
+    }
   }
 
   void _handleCardTap(int cardValue) async {
@@ -509,28 +551,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
-
-    if (widget.mode == GameMode.passNPlay) {
-      if (playerIndex == game.currentPlayerIndex) {
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: p.hand.map((cardValue) {
-              return _buildPlayingCard(
-                value: cardValue,
-                onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
-              );
-            }).toList(),
-          ),
-        );
-      } else {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(p.hand.length, (_) => _buildHiddenCard()),
-        );
-      }
-    }
 
     if (widget.mode == GameMode.friend) {
       if (playerIndex == 0) {
@@ -914,7 +934,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 width: double.infinity,
                 height: double.infinity,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: CustomAxisAlignment.center,
                   children: [
                     Text("🎆 👑 🎆", style: TextStyle(fontSize: 40)),
                     SizedBox(height: 10),
