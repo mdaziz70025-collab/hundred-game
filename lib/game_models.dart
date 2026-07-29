@@ -1,4 +1,4 @@
-enum GameMode { passNPlay, friend, offline, online }
+enum GameMode { offline, online, friend }
 
 class Player {
   final String id;
