@@ -79,77 +79,87 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _listenToFirebaseRoom() {
-    _roomSubscription = _dbRef.child("rooms").child(widget.roomCode).onValue.listen((event) {
-      if (!event.snapshot.exists || event.snapshot.value == null) return;
+    try {
+      _roomSubscription = _dbRef.child("rooms").child(widget.roomCode).onValue.listen((event) {
+        if (!event.snapshot.exists || event.snapshot.value == null) return;
 
-      Map<dynamic, dynamic> roomData = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
-      List<String> roomPlayers = List<String>.from(roomData['players'] ?? []);
-      int currentDealerIdx = roomData['currentDealerIndex'] ?? 0;
-      bool firebaseDealtStatus = roomData['cardsDealt'] ?? false;
+        Map<dynamic, dynamic> roomData = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+        List<String> roomPlayers = List<String>.from(roomData['players'] ?? []);
+        int currentDealerIdx = roomData['currentDealerIndex'] ?? 0;
+        bool firebaseDealtStatus = roomData['cardsDealt'] ?? false;
 
-      if (roomPlayers.isNotEmpty) {
-        String dealer = roomPlayers[currentDealerIdx % roomPlayers.length];
-        
-        if (mounted) {
-          setState(() {
-            currentDealerName = dealer;
-          });
-        }
-
-        // Realtime Deck & Hand Sync
-        if (firebaseDealtStatus && roomData['hands'] != null) {
-          Map handsMap = roomData['hands'] as Map;
+        if (roomPlayers.isNotEmpty) {
+          String dealer = roomPlayers[currentDealerIdx % roomPlayers.length];
           
-          for (int p = 0; p < game.players.length; p++) {
-            String pName = game.players[p].name;
-            if (handsMap.containsKey(pName)) {
-              List<int> pHand = List<int>.from(handsMap[pName] ?? []);
-              game.players[p].hand = pHand;
+          if (mounted) {
+            setState(() {
+              currentDealerName = dealer;
+            });
+          }
+
+          if (firebaseDealtStatus && roomData['hands'] != null) {
+            Map handsMap = roomData['hands'] as Map;
+            
+            for (int p = 0; p < game.players.length; p++) {
+              String pName = game.players[p].name;
+              if (handsMap.containsKey(pName)) {
+                List<int> pHand = List<int>.from(handsMap[pName] ?? []);
+                game.players[p].hand = pHand;
+              }
+            }
+
+            if (roomData['tableCards'] != null) {
+              List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
+              List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
+              game.currentRoundCards = tableCards;
+              game.playedCardOwners = tableOwners;
+            }
+
+            // 🎯 Realtime Turn Sync Across Devices
+            if (roomData['turnIndex'] != null) {
+              int syncedTurn = roomData['turnIndex'];
+              if (syncedTurn < game.players.length) {
+                game.currentPlayerIndex = syncedTurn;
+              }
+            }
+
+            if (!cardsDealt) {
+              setState(() {
+                cardsDealt = true;
+              });
+            } else {
+              setState(() {});
             }
           }
-
-          // Table cards sync
-          if (roomData['tableCards'] != null) {
-            List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
-            List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
-            game.currentRoundCards = tableCards;
-            game.playedCardOwners = tableOwners;
-          }
-
-          if (roomData['turnIndex'] != null) {
-            game.currentPlayerIndex = roomData['turnIndex'];
-          }
-
-          if (!cardsDealt) {
-            setState(() {
-              cardsDealt = true;
-            });
-          } else {
-            setState(() {});
-          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      debugPrint("Firebase sync error: $e");
+    }
   }
 
   void _loadBannerAd() {
-    _bannerAd = BannerAd(
-      adUnitId: _bannerAdUnitId,
-      request: const AdRequest(),
-      size: AdSize.banner,
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          if (mounted) {
-            setState(() {
-              _isBannerAdLoaded = true;
-            });
-          }
-        },
-        onAdFailedToLoad: (ad, err) {
-          ad.dispose();
-        },
-      ),
-    )..load();
+    try {
+      _bannerAd = BannerAd(
+        adUnitId: _bannerAdUnitId,
+        request: const AdRequest(),
+        size: AdSize.banner,
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            if (mounted) {
+              setState(() {
+                _isBannerAdLoaded = true;
+              });
+            }
+          },
+          onAdFailedToLoad: (ad, err) {
+            ad.dispose();
+          },
+        ),
+      )..load();
+    } catch (e) {
+      debugPrint("Ad error: $e");
+    }
   }
 
   @override
@@ -191,9 +201,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       currentDealingCardIndex = 0;
     });
 
+    // 🎯 Step 1: New deck deal aur lowest card owner evaluate karo
+    game.dealNewDeck();
+
+    // 🎯 Step 2: Firebase Database par exact turnIndex (5 number card wale ka) sync karo
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
-      game.dealNewDeck();
-      
       Map<String, List<int>> handsSyncMap = {};
       for (var player in game.players) {
         handsSyncMap[player.name] = player.hand;
@@ -204,7 +216,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         "hands": handsSyncMap,
         "tableCards": [],
         "tableOwners": [],
-        "turnIndex": game.currentPlayerIndex,
+        "turnIndex": game.currentPlayerIndex, // 👈 Fix: Lowest card player index sent to all!
       });
     }
 
@@ -238,6 +250,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _checkAndPlayNextTurn() async {
     if (!cardsDealt || isDealing || game.isDeckFinished || game.winnerName.isNotEmpty) return;
+    if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return;
 
     Player current = game.players[game.currentPlayerIndex];
 
@@ -295,9 +308,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleCardTap(int cardValue) async {
+    if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return;
     Player current = game.players[game.currentPlayerIndex];
 
-    // Check Legal Move
     if (game.isFirstRound) {
       if (current.hand.contains(5) && cardValue != 5) {
         setState(() => game.warningMsg = "Pehle 5 number card hi chalna hoga!");
@@ -330,10 +343,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (!mounted) return;
 
-    // Apply move in local game logic
     game.playCard(cardValue);
 
-    // 🎯 Realtime Move Push to Firebase (Instant Table Sync)
+    // 🎯 CARD MOVE SYNC: Firebase update triggers real-time move across connected devices
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
       for (var player in game.players) {
@@ -553,10 +565,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildPlayerHandView(int playerIndex, {bool isVertical = false}) {
     if (!cardsDealt) return SizedBox.shrink();
+    if (playerIndex >= game.players.length) return SizedBox.shrink();
 
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
 
+    // 🎯 ONLINE / FRIEND MODE: Player 0 (Aapka Device Player) hamesha apne cards dekh sakta hai
     if (widget.mode == GameMode.friend) {
       if (playerIndex == 0) {
         return SingleChildScrollView(
@@ -576,7 +590,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
     }
 
-    bool shouldShowCards = (playerIndex == 0) || isCurrentTurn;
+    // PASS N PLAY MODE (Offline)
+    bool shouldShowCards = isCurrentTurn && !game.isCardHiddenForPass;
 
     if (shouldShowCards) {
       if (isVertical) {
@@ -618,7 +633,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    Player activePlayer = game.players[game.currentPlayerIndex];
+    if (game.players.isEmpty) {
+      return Scaffold(
+        backgroundColor: Color(0xFF1B2A47),
+        body: Center(child: CircularProgressIndicator(color: Colors.amber)),
+      );
+    }
+
+    Player activePlayer = game.players[game.currentPlayerIndex % game.players.length];
     String dealerDisplayName = currentDealerName.isNotEmpty ? currentDealerName : game.players[0].name;
 
     return WillPopScope(
@@ -939,7 +961,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 width: double.infinity,
                 height: double.infinity,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: BuildAxisAlignment.center,
                   children: [
                     Text("🎆 👑 🎆", style: TextStyle(fontSize: 40)),
                     SizedBox(height: 10),
