@@ -111,6 +111,7 @@ class HundredGameLogic {
 
   void playCard(int cardValue) {
     warningMsg = "";
+    if (players.isEmpty || currentPlayerIndex >= players.length) return;
     Player current = players[currentPlayerIndex];
 
     if (isFirstRound) {
