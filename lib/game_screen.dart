@@ -35,7 +35,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   StreamSubscription<DatabaseEvent>? _roomSubscription;
 
   bool isDealing = false;
-  bool cardsDealt = true;
+  bool cardsDealt = false;
   bool isSoundEnabled = true;
 
   int currentlyDealingPlayerIndex = -1;
@@ -64,6 +64,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
     game.startMatch(widget.playerNames);
 
+    cardsDealt = false;
+
     _turnAnimationController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 600),
@@ -86,6 +88,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         Map<dynamic, dynamic> roomData = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
         List<String> roomPlayers = List<String>.from(roomData['players'] ?? []);
         int currentDealerIdx = roomData['currentDealerIndex'] ?? 0;
+        bool firebaseDealtStatus = roomData['cardsDealt'] ?? false;
 
         if (roomPlayers.isNotEmpty) {
           String dealer = roomPlayers[currentDealerIdx % roomPlayers.length];
@@ -96,7 +99,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             });
           }
 
-          if (roomData['hands'] != null) {
+          if (firebaseDealtStatus && roomData['hands'] != null) {
             Map handsMap = roomData['hands'] as Map;
             
             for (int p = 0; p < game.players.length; p++) {
@@ -258,10 +261,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         isDealing = false;
         cardsDealt = true;
         currentlyDealingPlayerIndex = -1;
-        game.revealFirstTurnDialog();
+        
+        if (widget.mode == GameMode.offline) {
+          game.isCardHiddenForPass = true;
+        } else {
+          game.revealFirstTurnDialog();
+        }
       });
 
-      _checkAndPlayNextTurn();
+      if (widget.mode != GameMode.offline) {
+        _checkAndPlayNextTurn();
+      }
     }
   }
 
@@ -584,6 +594,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildPlayerHandView(int realIndex, {bool isVertical = false}) {
+    if (!cardsDealt) return SizedBox.shrink();
     if (realIndex >= game.players.length) return SizedBox.shrink();
 
     Player p = game.players[realIndex];
@@ -775,7 +786,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         ],
                       ),
                       child: Center(
-                        child: !isDealing && game.currentRoundCards.isEmpty && !isCardFlying
+                        child: !isDealing && !cardsDealt
                             ? (_canCurrentPlayerDeal
                                 ? ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
@@ -886,7 +897,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
               ],
             ),
-            if (game.showFirstTurnDialog)
+            if (widget.mode != GameMode.offline && game.showFirstTurnDialog)
               Container(
                 color: Colors.black54,
                 child: AlertDialog(
@@ -948,7 +959,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
-            if (widget.mode != GameMode.friend && game.isCardHiddenForPass && !game.showFirstTurnDialog && game.winnerName.isEmpty && !game.isDeckFinished && !isCardFlying)
+            if (widget.mode == GameMode.offline && game.isCardHiddenForPass && game.winnerName.isEmpty && !game.isDeckFinished && !isCardFlying)
               Container(
                 color: Colors.black87,
                 width: double.infinity,
