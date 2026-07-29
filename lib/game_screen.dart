@@ -79,75 +79,83 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _listenToFirebaseRoom() {
-    _roomSubscription = _dbRef.child("rooms").child(widget.roomCode).onValue.listen((event) {
-      if (!event.snapshot.exists || event.snapshot.value == null) return;
+    try {
+      _roomSubscription = _dbRef.child("rooms").child(widget.roomCode).onValue.listen((event) {
+        if (!event.snapshot.exists || event.snapshot.value == null) return;
 
-      Map<dynamic, dynamic> roomData = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
-      List<String> roomPlayers = List<String>.from(roomData['players'] ?? []);
-      int currentDealerIdx = roomData['currentDealerIndex'] ?? 0;
-      bool firebaseDealtStatus = roomData['cardsDealt'] ?? false;
+        Map<dynamic, dynamic> roomData = Map<dynamic, dynamic>.from(event.snapshot.value as Map);
+        List<String> roomPlayers = List<String>.from(roomData['players'] ?? []);
+        int currentDealerIdx = roomData['currentDealerIndex'] ?? 0;
+        bool firebaseDealtStatus = roomData['cardsDealt'] ?? false;
 
-      if (roomPlayers.isNotEmpty) {
-        String dealer = roomPlayers[currentDealerIdx % roomPlayers.length];
-        
-        if (mounted) {
-          setState(() {
-            currentDealerName = dealer;
-          });
-        }
-
-        if (firebaseDealtStatus && roomData['hands'] != null) {
-          Map handsMap = roomData['hands'] as Map;
+        if (roomPlayers.isNotEmpty) {
+          String dealer = roomPlayers[currentDealerIdx % roomPlayers.length];
           
-          for (int p = 0; p < game.players.length; p++) {
-            String pName = game.players[p].name;
-            if (handsMap.containsKey(pName)) {
-              List<int> pHand = List<int>.from(handsMap[pName] ?? []);
-              game.players[p].hand = pHand;
+          if (mounted) {
+            setState(() {
+              currentDealerName = dealer;
+            });
+          }
+
+          if (firebaseDealtStatus && roomData['hands'] != null) {
+            Map handsMap = roomData['hands'] as Map;
+            
+            for (int p = 0; p < game.players.length; p++) {
+              String pName = game.players[p].name;
+              if (handsMap.containsKey(pName)) {
+                List<int> pHand = List<int>.from(handsMap[pName] ?? []);
+                game.players[p].hand = pHand;
+              }
+            }
+
+            if (roomData['tableCards'] != null) {
+              List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
+              List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
+              game.currentRoundCards = tableCards;
+              game.playedCardOwners = tableOwners;
+            }
+
+            if (roomData['turnIndex'] != null) {
+              game.currentPlayerIndex = roomData['turnIndex'];
+            }
+
+            if (!cardsDealt) {
+              setState(() {
+                cardsDealt = true;
+              });
+            } else {
+              setState(() {});
             }
           }
-
-          if (roomData['tableCards'] != null) {
-            List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
-            List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
-            game.currentRoundCards = tableCards;
-            game.playedCardOwners = tableOwners;
-          }
-
-          if (roomData['turnIndex'] != null) {
-            game.currentPlayerIndex = roomData['turnIndex'];
-          }
-
-          if (!cardsDealt) {
-            setState(() {
-              cardsDealt = true;
-            });
-          } else {
-            setState(() {});
-          }
         }
-      }
-    });
+      });
+    } catch (e) {
+      debugPrint("Firebase Listener Error: $e");
+    }
   }
 
   void _loadBannerAd() {
-    _bannerAd = BannerAd(
-      adUnitId: _bannerAdUnitId,
-      request: const AdRequest(),
-      size: AdSize.banner,
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          if (mounted) {
-            setState(() {
-              _isBannerAdLoaded = true;
-            });
-          }
-        },
-        onAdFailedToLoad: (ad, err) {
-          ad.dispose();
-        },
-      ),
-    )..load();
+    try {
+      _bannerAd = BannerAd(
+        adUnitId: _bannerAdUnitId,
+        request: const AdRequest(),
+        size: AdSize.banner,
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            if (mounted) {
+              setState(() {
+                _isBannerAdLoaded = true;
+              });
+            }
+          },
+          onAdFailedToLoad: (ad, err) {
+            ad.dispose();
+          },
+        ),
+      )..load();
+    } catch (e) {
+      debugPrint("AdMob Load Error: $e");
+    }
   }
 
   @override
@@ -237,6 +245,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _checkAndPlayNextTurn() async {
     if (!cardsDealt || isDealing || game.isDeckFinished || game.winnerName.isNotEmpty) return;
 
+    if (game.currentPlayerIndex >= game.players.length) return;
     Player current = game.players[game.currentPlayerIndex];
 
     bool isLastRound = game.players.every((p) => p.hand.length == 1);
@@ -293,6 +302,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleCardTap(int cardValue) async {
+    if (game.currentPlayerIndex >= game.players.length) return;
     Player current = game.players[game.currentPlayerIndex];
 
     if (game.isFirstRound) {
@@ -548,6 +558,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildPlayerHandView(int playerIndex, {bool isVertical = false}) {
     if (!cardsDealt) return SizedBox.shrink();
+    if (playerIndex >= game.players.length) return SizedBox.shrink();
 
     Player p = game.players[playerIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == playerIndex);
@@ -571,7 +582,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
     }
 
-    bool shouldShowCards = (playerIndex == 0) || isCurrentTurn;
+    bool shouldShowCards = isCurrentTurn && !game.isCardHiddenForPass;
 
     if (shouldShowCards) {
       if (isVertical) {
@@ -613,7 +624,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    Player activePlayer = game.players[game.currentPlayerIndex];
+    if (game.players.isEmpty) {
+      return Scaffold(
+        backgroundColor: Color(0xFF1B2A47),
+        body: Center(child: CircularProgressIndicator(color: Colors.amber)),
+      );
+    }
+
+    Player activePlayer = game.players[game.currentPlayerIndex % game.players.length];
     String dealerDisplayName = currentDealerName.isNotEmpty ? currentDealerName : game.players[0].name;
 
     return WillPopScope(
