@@ -139,6 +139,8 @@ class HundredGameLogic {
     currentRoundCards.add(cardValue);
     playedCardOwners.add(current.name);
 
+    isFirstRound = false;
+
     if (currentRoundCards.length < totalPlayers) {
       currentPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
       if (mode == GameMode.offline) {
@@ -188,7 +190,6 @@ class HundredGameLogic {
       currentPlayerIndex = winningCardOwnerIndex;
     }
 
-    isFirstRound = false;
     currentRoundCards.clear();
     playedCardOwners.clear();
 
