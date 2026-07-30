@@ -115,26 +115,57 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               }
             }
 
+            // Sync Scores from Firebase
+            if (roomData['scores'] != null) {
+              Map scoresMap = roomData['scores'] as Map;
+              for (int p = 0; p < game.players.length; p++) {
+                String pName = game.players[p].name;
+                var matchingKey = scoresMap.keys.firstWhere(
+                  (k) => k.toString().trim().toLowerCase() == pName.trim().toLowerCase(),
+                  orElse: () => null,
+                );
+                if (matchingKey != null) {
+                  game.players[p].currentScore = scoresMap[matchingKey] ?? 0;
+                }
+              }
+            }
+
+            // Sync Wins from Firebase
+            if (roomData['wins'] != null) {
+              Map winsMap = roomData['wins'] as Map;
+              winsMap.forEach((key, value) {
+                game.playerWinsMap[key.toString()] = value ?? 0;
+              });
+            }
+
+            // Sync Total Rounds Played
+            if (roomData['totalRoundsPlayed'] != null) {
+              game.totalRoundsPlayed = roomData['totalRoundsPlayed'];
+            }
+
             if (roomData['tableCards'] != null) {
               List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
               List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
               game.currentRoundCards = tableCards;
               game.playedCardOwners = tableOwners;
+            } else {
+              game.currentRoundCards = [];
+              game.playedCardOwners = [];
             }
 
             if (roomData['currentTurnPlayer'] != null) {
               String activeTurnName = roomData['currentTurnPlayer'].toString().trim().toLowerCase();
               int foundIndex = game.players.indexWhere((p) => p.name.trim().toLowerCase() == activeTurnName);
               if (foundIndex != -1) {
-                setState(() {
-                  game.currentPlayerIndex = foundIndex;
-                });
+                game.currentPlayerIndex = foundIndex;
               }
             }
 
-            setState(() {
-              cardsDealt = true;
-            });
+            if (mounted) {
+              setState(() {
+                cardsDealt = true;
+              });
+            }
           }
         }
       });
@@ -225,8 +256,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
+      Map<String, int> scoresSyncMap = {};
       for (var player in game.players) {
         handsSyncMap[player.name] = player.hand;
+        scoresSyncMap[player.name] = player.currentScore;
       }
 
       String firstTurnPlayerName = game.players[game.currentPlayerIndex].name;
@@ -234,6 +267,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "cardsDealt": true,
         "hands": handsSyncMap,
+        "scores": scoresSyncMap,
+        "wins": game.playerWinsMap,
+        "totalRoundsPlayed": game.totalRoundsPlayed,
         "tableCards": [],
         "tableOwners": [],
         "currentTurnPlayer": firstTurnPlayerName,
@@ -376,14 +412,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
+      Map<String, int> scoresSyncMap = {};
       for (var player in game.players) {
         handsSyncMap[player.name] = player.hand;
+        scoresSyncMap[player.name] = player.currentScore;
       }
 
       String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
 
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "hands": handsSyncMap,
+        "scores": scoresSyncMap,
+        "wins": game.playerWinsMap,
+        "totalRoundsPlayed": game.totalRoundsPlayed,
         "tableCards": List<int>.from(game.currentRoundCards),
         "tableOwners": List<String>.from(game.playedCardOwners),
         "currentTurnPlayer": nextTurnPlayerName,
