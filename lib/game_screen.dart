@@ -981,7 +981,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     SizedBox(height: 15),
                     Text("Target score abhi tak kisi ne hit nahi kiya.", style: TextStyle(color: Colors.white70, fontSize: 14)),
                     SizedBox(height: 25),
-                    if (_canCurrentPlayerDeal)
+                    if (_canCurrentPlayerDeal || widget.isHost)
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
@@ -992,19 +992,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         onPressed: () async {
                           if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
                             DataSnapshot snap = await _dbRef.child("rooms").child(widget.roomCode).get();
-                            if (snap.exists) {
-                              Map data = snap.value as Map;
-                              List players = data['players'] ?? [];
-                              int currentDealer = data['currentDealerIndex'] ?? 0;
-                              int nextDealer = (currentDealer + 1) % players.length;
+                            int currentDealer = 0;
+                            int totalP = game.players.length;
 
-                              await _dbRef.child("rooms").child(widget.roomCode).update({
-                                "currentDealerIndex": nextDealer,
-                                "cardsDealt": false,
-                                "tableCards": [],
-                                "tableOwners": [],
-                              });
+                            if (snap.exists && snap.value != null) {
+                              Map data = Map<dynamic, dynamic>.from(snap.value as Map);
+                              currentDealer = data['currentDealerIndex'] ?? 0;
                             }
+
+                            int nextDealer = (currentDealer + 1) % (totalP > 0 ? totalP : 1);
+
+                            await _dbRef.child("rooms").child(widget.roomCode).update({
+                              "currentDealerIndex": nextDealer,
+                              "cardsDealt": false,
+                              "tableCards": [],
+                              "tableOwners": [],
+                            });
                           }
                           setState(() {
                             game.dealNewDeck();
@@ -1013,9 +1016,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         },
                       )
                     else
-                      Text(
-                        "Waiting for $dealerDisplayName to Deal Cards...",
-                        style: TextStyle(color: Colors.amberAccent, fontSize: 15, fontWeight: FontWeight.bold),
+                      Column(
+                        children: [
+                          CircularProgressIndicator(color: Colors.amber),
+                          SizedBox(height: 15),
+                          Text(
+                            "Waiting for $dealerDisplayName to Deal Cards...",
+                            style: TextStyle(color: Colors.amberAccent, fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                   ],
                 ),
