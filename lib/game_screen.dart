@@ -99,6 +99,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             });
           }
 
+          // Target Score Syncing
+          if (roomData['targetScore'] != null) {
+            int tScore = roomData['targetScore'];
+            game.targetScore = tScore;
+          }
+
           if (firebaseDealtStatus && roomData['hands'] != null) {
             Map handsMap = roomData['hands'] as Map;
             
@@ -266,6 +272,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "cardsDealt": true,
+        "targetScore": game.targetScore,
         "hands": handsSyncMap,
         "scores": scoresSyncMap,
         "wins": game.playerWinsMap,
@@ -317,16 +324,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     Player current = game.players[game.currentPlayerIndex];
 
-    bool isLastRound = game.players.every((p) => p.hand.length == 1);
-    if (isLastRound) {
-      await Future.delayed(Duration(milliseconds: 500));
-      if (!mounted) return;
-      if (current.hand.isNotEmpty && _isMyTurn) {
-        _handleCardTap(current.hand.first);
-      }
-      return;
-    }
-
+    // Auto-bot play logic ONLY
     if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
       await Future.delayed(Duration(milliseconds: 700));
       if (!mounted) return;
@@ -770,7 +768,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      "TARGET: ${widget.targetScore}",
+                      "TARGET: ${game.targetScore}",
                       style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ),
