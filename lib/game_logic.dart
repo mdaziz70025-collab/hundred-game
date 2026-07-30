@@ -188,7 +188,7 @@ class HundredGameLogic {
       currentPlayerIndex = winningCardOwnerIndex;
     }
 
-    isFirstRound = false; // Pehla round khatam hote hi first round restriction unlock
+    isFirstRound = false; 
     currentRoundCards.clear();
     playedCardOwners.clear();
 
