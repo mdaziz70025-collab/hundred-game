@@ -42,6 +42,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int currentDealingCardIndex = 0;
 
   bool isCardFlying = false;
+  bool isProcessingTurn = false; // Prevent infinite re-entry
   int? flyingCardValue;
   String currentDealerName = "";
 
@@ -121,7 +122,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               }
             }
 
-            // 2. Scores Sync (Direct copy, no local calculation override)
+            // 2. Scores Sync (Direct copy)
             if (roomData['scores'] != null) {
               Map scoresMap = roomData['scores'] as Map;
               for (int p = 0; p < game.players.length; p++) {
@@ -332,6 +333,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     Player current = game.players[game.currentPlayerIndex];
 
+    // Card khali ho gaya ho toh process stop karein
+    if (current.hand.isEmpty) return;
+
+    // Auto-bot play logic ONLY
     if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
       await Future.delayed(Duration(milliseconds: 700));
       if (!mounted) return;
@@ -376,10 +381,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleCardTap(int cardValue) async {
+    if (isProcessingTurn || isCardFlying) return; // Re-entry guard
     if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return;
     if (widget.mode == GameMode.friend && !_isMyTurn) return;
 
     Player current = game.players[game.currentPlayerIndex];
+
+    if (!current.hand.contains(cardValue)) return; // Valid card guard
 
     if (game.isFirstRound) {
       if (current.hand.contains(5) && cardValue != 5) {
@@ -404,12 +412,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _playSoundEffect();
 
     setState(() {
+      isProcessingTurn = true;
       isCardFlying = true;
       flyingCardValue = cardValue;
       game.warningMsg = "";
     });
 
-    await Future.delayed(Duration(milliseconds: 300));
+    await Future.delayed(Duration(milliseconds: 250));
 
     if (!mounted) return;
 
@@ -438,12 +447,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       });
     }
 
-    setState(() {
-      isCardFlying = false;
-      flyingCardValue = null;
-    });
-
-    _checkAndPlayNextTurn();
+    if (mounted) {
+      setState(() {
+        isCardFlying = false;
+        flyingCardValue = null;
+        isProcessingTurn = false;
+      });
+      _checkAndPlayNextTurn();
+    }
   }
 
   Future<bool> _showExitDialog() async {
@@ -661,7 +672,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             children: p.hand.map((cardValue) {
               return _buildPlayingCard(
                 value: cardValue,
-                onTap: (isCardFlying || !isCurrentTurn || !_isMyTurn) ? null : () => _handleCardTap(cardValue),
+                onTap: (isProcessingTurn || isCardFlying || !isCurrentTurn || !_isMyTurn) ? null : () => _handleCardTap(cardValue),
               );
             }).toList(),
           ),
@@ -679,7 +690,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           children: p.hand.map((cardValue) {
             return _buildPlayingCard(
               value: cardValue,
-              onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
+              onTap: (isProcessingTurn || isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
             );
           }).toList(),
         );
@@ -691,7 +702,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             children: p.hand.map((cardValue) {
               return _buildPlayingCard(
                 value: cardValue,
-                onTap: (isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
+                onTap: (isProcessingTurn || isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
               );
             }).toList(),
           ),
