@@ -99,9 +99,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             });
           }
 
-          // Target Score Syncing
+          // 1. Target Score Sync
           if (roomData['targetScore'] != null) {
-            int tScore = roomData['targetScore'];
+            int tScore = int.tryParse(roomData['targetScore'].toString()) ?? widget.targetScore;
             game.targetScore = tScore;
           }
 
@@ -121,7 +121,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               }
             }
 
-            // Sync Scores from Firebase
+            // 2. Scores Sync (Direct copy, no local calculation override)
             if (roomData['scores'] != null) {
               Map scoresMap = roomData['scores'] as Map;
               for (int p = 0; p < game.players.length; p++) {
@@ -131,24 +131,31 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   orElse: () => null,
                 );
                 if (matchingKey != null) {
-                  game.players[p].currentScore = scoresMap[matchingKey] ?? 0;
+                  int sVal = int.tryParse(scoresMap[matchingKey].toString()) ?? 0;
+                  game.players[p].currentScore = sVal;
+
+                  // Winner Check
+                  if (sVal >= game.targetScore && game.winnerName.isEmpty) {
+                    game.winnerName = pName;
+                  }
                 }
               }
             }
 
-            // Sync Wins from Firebase
+            // 3. Wins Sync
             if (roomData['wins'] != null) {
               Map winsMap = roomData['wins'] as Map;
               winsMap.forEach((key, value) {
-                game.playerWinsMap[key.toString()] = value ?? 0;
+                game.playerWinsMap[key.toString()] = int.tryParse(value.toString()) ?? 0;
               });
             }
 
-            // Sync Total Rounds Played
+            // 4. Round Number Sync
             if (roomData['totalRoundsPlayed'] != null) {
-              game.totalRoundsPlayed = roomData['totalRoundsPlayed'];
+              game.totalRoundsPlayed = int.tryParse(roomData['totalRoundsPlayed'].toString()) ?? 0;
             }
 
+            // 5. Table Cards Sync
             if (roomData['tableCards'] != null) {
               List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
               List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
@@ -159,6 +166,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               game.playedCardOwners = [];
             }
 
+            // 6. Current Turn Player Sync
             if (roomData['currentTurnPlayer'] != null) {
               String activeTurnName = roomData['currentTurnPlayer'].toString().trim().toLowerCase();
               int foundIndex = game.players.indexWhere((p) => p.name.trim().toLowerCase() == activeTurnName);
@@ -272,7 +280,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "cardsDealt": true,
-        "targetScore": game.targetScore,
+        "targetScore": widget.targetScore,
         "hands": handsSyncMap,
         "scores": scoresSyncMap,
         "wins": game.playerWinsMap,
@@ -324,7 +332,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     Player current = game.players[game.currentPlayerIndex];
 
-    // Auto-bot play logic ONLY
     if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
       await Future.delayed(Duration(milliseconds: 700));
       if (!mounted) return;
@@ -406,6 +413,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (!mounted) return;
 
+    // Local evaluation
     game.playCard(cardValue);
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
@@ -422,6 +430,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         "hands": handsSyncMap,
         "scores": scoresSyncMap,
         "wins": game.playerWinsMap,
+        "targetScore": widget.targetScore,
         "totalRoundsPlayed": game.totalRoundsPlayed,
         "tableCards": List<int>.from(game.currentRoundCards),
         "tableOwners": List<String>.from(game.playedCardOwners),
