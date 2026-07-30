@@ -53,10 +53,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _isBannerAdLoaded = false;
   final String _bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
 
+  InterstitialAd? _interstitialAd;
+  bool _isInterstitialAdLoaded = false;
+  final String _interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
+
   @override
   void initState() {
     super.initState();
     _loadBannerAd();
+    _loadInterstitialAd();
 
     game = HundredGameLogic(
       mode: widget.mode,
@@ -78,6 +83,65 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       _listenToFirebaseRoom();
+    }
+  }
+
+  void _loadBannerAd() {
+    try {
+      _bannerAd = BannerAd(
+        adUnitId: _bannerAdUnitId,
+        request: const AdRequest(),
+        size: AdSize.banner,
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            if (mounted) setState(() => _isBannerAdLoaded = true);
+          },
+          onAdFailedToLoad: (ad, err) => ad.dispose(),
+        ),
+      )..load();
+    } catch (e) {
+      debugPrint("Banner Ad error: $e");
+    }
+  }
+
+  void _loadInterstitialAd() {
+    try {
+      InterstitialAd.load(
+        adUnitId: _interstitialAdUnitId,
+        request: const AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            _interstitialAd = ad;
+            _isInterstitialAdLoaded = true;
+          },
+          onAdFailedToLoad: (err) {
+            _isInterstitialAdLoaded = false;
+            _interstitialAd = null;
+          },
+        ),
+      );
+    } catch (e) {
+      debugPrint("Interstitial Ad error: $e");
+    }
+  }
+
+  void _showInterstitialAd({required VoidCallback onAdDismissed}) {
+    if (_isInterstitialAdLoaded && _interstitialAd != null) {
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (ad) {
+          ad.dispose();
+          _loadInterstitialAd();
+          onAdDismissed();
+        },
+        onAdFailedToShowFullScreenContent: (ad, err) {
+          ad.dispose();
+          _loadInterstitialAd();
+          onAdDismissed();
+        },
+      );
+      _interstitialAd!.show();
+    } else {
+      onAdDismissed();
     }
   }
 
@@ -190,34 +254,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _loadBannerAd() {
-    try {
-      _bannerAd = BannerAd(
-        adUnitId: _bannerAdUnitId,
-        request: const AdRequest(),
-        size: AdSize.banner,
-        listener: BannerAdListener(
-          onAdLoaded: (ad) {
-            if (mounted) {
-              setState(() {
-                _isBannerAdLoaded = true;
-              });
-            }
-          },
-          onAdFailedToLoad: (ad, err) {
-            ad.dispose();
-          },
-        ),
-      )..load();
-    } catch (e) {
-      debugPrint("Ad error: $e");
-    }
-  }
-
   @override
   void dispose() {
     _roomSubscription?.cancel();
     _bannerAd?.dispose();
+    _interstitialAd?.dispose();
     _turnAnimationController.dispose();
     super.dispose();
   }
@@ -1083,7 +1124,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         padding: EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                       ),
                       child: Text("BACK TO MENU", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        _showInterstitialAd(onAdDismissed: () {
+                          Navigator.pop(context);
+                        });
+                      },
                     )
                   ],
                 ),
