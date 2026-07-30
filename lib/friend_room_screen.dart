@@ -135,7 +135,6 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
             String hostName = roomData['hostName'] ?? "";
 
             if (status == "playing") {
-              // Reorder players so local user is always at index 0 for UI rendering
               List<String> orderedPlayers = List<String>.from(players);
               int myIndex = orderedPlayers.indexOf(currentUserName);
               if (myIndex != -1 && myIndex != 0) {
@@ -157,8 +156,8 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
                       targetScore: roomData['targetScore'] ?? 100,
                       playerNames: orderedPlayers,
                       isHost: isHost,
-                      roomCode: roomCode, // 👈 Room Code Pass
-                      myPlayerName: currentUserName, // 👈 Player Name Pass
+                      roomCode: roomCode,
+                      myPlayerName: currentUserName,
                     ),
                   ),
                 );
