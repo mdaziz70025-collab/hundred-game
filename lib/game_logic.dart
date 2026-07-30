@@ -53,12 +53,14 @@ class HundredGameLogic {
       players.add(Player(id: 'p_$i', name: playerNames[i], hand: []));
       playerWinsMap[playerNames[i]] = 0;
     }
-    dealNewDeck();
+    
+    // Match ke shuruat mein pehla turn lowest card wale ko milega
+    dealNewDeck(isMatchStart: true);
   }
 
-  void dealNewDeck() {
+  void dealNewDeck({bool isMatchStart = false}) {
     isDeckFinished = false;
-    isFirstRound = true;
+    isFirstRound = isMatchStart; // Sirf match ke pehle baji me 5/15 rule strict hoga
     showFirstTurnDialog = false;
     currentRoundCards.clear();
     playedCardOwners.clear();
@@ -82,7 +84,10 @@ class HundredGameLogic {
       players[i].hand = hand;
     }
 
-    determineFirstPlayer();
+    // Pehle match start me 5/15 card wala turn, agli baji me winner ka turn
+    if (isMatchStart) {
+      determineFirstPlayer();
+    }
   }
 
   void determineFirstPlayer() {
@@ -106,7 +111,9 @@ class HundredGameLogic {
   }
 
   void revealFirstTurnDialog() {
-    showFirstTurnDialog = true;
+    if (isFirstRound) {
+      showFirstTurnDialog = true;
+    }
   }
 
   void playCard(int cardValue) {
@@ -185,6 +192,7 @@ class HundredGameLogic {
         winnerName = winnerNameStr;
       }
 
+      // Agle turn aur agli baji ka pehla turn winner ka hi hoga
       currentPlayerIndex = winningCardOwnerIndex;
     }
 
