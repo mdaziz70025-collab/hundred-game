@@ -42,7 +42,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int currentDealingCardIndex = 0;
 
   bool isCardFlying = false;
-  bool isProcessingTurn = false; // Prevent infinite re-entry
+  bool isProcessingTurn = false;
   int? flyingCardValue;
   String currentDealerName = "";
 
@@ -100,7 +100,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             });
           }
 
-          // 1. Target Score Sync
           if (roomData['targetScore'] != null) {
             int tScore = int.tryParse(roomData['targetScore'].toString()) ?? widget.targetScore;
             game.targetScore = tScore;
@@ -122,7 +121,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               }
             }
 
-            // 2. Scores Sync (Direct copy)
             if (roomData['scores'] != null) {
               Map scoresMap = roomData['scores'] as Map;
               for (int p = 0; p < game.players.length; p++) {
@@ -135,7 +133,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   int sVal = int.tryParse(scoresMap[matchingKey].toString()) ?? 0;
                   game.players[p].currentScore = sVal;
 
-                  // Winner Check
                   if (sVal >= game.targetScore && game.winnerName.isEmpty) {
                     game.winnerName = pName;
                   }
@@ -143,7 +140,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               }
             }
 
-            // 3. Wins Sync
             if (roomData['wins'] != null) {
               Map winsMap = roomData['wins'] as Map;
               winsMap.forEach((key, value) {
@@ -151,12 +147,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               });
             }
 
-            // 4. Round Number Sync
             if (roomData['totalRoundsPlayed'] != null) {
               game.totalRoundsPlayed = int.tryParse(roomData['totalRoundsPlayed'].toString()) ?? 0;
             }
 
-            // 5. Table Cards Sync
             if (roomData['tableCards'] != null) {
               List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
               List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
@@ -167,7 +161,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               game.playedCardOwners = [];
             }
 
-            // 6. Current Turn Player Sync
             if (roomData['currentTurnPlayer'] != null) {
               String activeTurnName = roomData['currentTurnPlayer'].toString().trim().toLowerCase();
               int foundIndex = game.players.indexWhere((p) => p.name.trim().toLowerCase() == activeTurnName);
@@ -179,6 +172,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             if (mounted) {
               setState(() {
                 cardsDealt = true;
+              });
+            }
+          } else if (!firebaseDealtStatus) {
+            if (mounted) {
+              setState(() {
+                cardsDealt = false;
               });
             }
           }
@@ -333,10 +332,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     Player current = game.players[game.currentPlayerIndex];
 
-    // Card khali ho gaya ho toh process stop karein
     if (current.hand.isEmpty) return;
 
-    // Auto-bot play logic ONLY
     if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
       await Future.delayed(Duration(milliseconds: 700));
       if (!mounted) return;
@@ -381,13 +378,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _handleCardTap(int cardValue) async {
-    if (isProcessingTurn || isCardFlying) return; // Re-entry guard
+    if (isProcessingTurn || isCardFlying) return;
     if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return;
     if (widget.mode == GameMode.friend && !_isMyTurn) return;
 
     Player current = game.players[game.currentPlayerIndex];
 
-    if (!current.hand.contains(cardValue)) return; // Valid card guard
+    if (!current.hand.contains(cardValue)) return;
 
     if (game.isFirstRound) {
       if (current.hand.contains(5) && cardValue != 5) {
@@ -422,7 +419,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     if (!mounted) return;
 
-    // Local evaluation
     game.playCard(cardValue);
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
@@ -981,40 +977,46 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("🃏 Hand Completed! 🃏", style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
+                    Text("🃏 Baji Khatam! 🃏", style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
                     SizedBox(height: 15),
-                    Text("Target Score abhi tak kisi ne hit nahi kiya.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    Text("Target score abhi tak kisi ne hit nahi kiya.", style: TextStyle(color: Colors.white70, fontSize: 14)),
                     SizedBox(height: 25),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                      ),
-                      icon: Icon(Icons.style, color: Colors.white),
-                      label: Text("START NEXT BAJI (RE-DEAL)", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                      onPressed: () async {
-                        if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
-                          DataSnapshot snap = await _dbRef.child("rooms").child(widget.roomCode).get();
-                          if (snap.exists) {
-                            Map data = snap.value as Map;
-                            List players = data['players'] ?? [];
-                            int currentDealer = data['currentDealerIndex'] ?? 0;
-                            int nextDealer = (currentDealer + 1) % players.length;
+                    if (_canCurrentPlayerDeal)
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                        ),
+                        icon: Icon(Icons.style, color: Colors.white),
+                        label: Text("AGLI BAJI DEAL KAREIN", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                        onPressed: () async {
+                          if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
+                            DataSnapshot snap = await _dbRef.child("rooms").child(widget.roomCode).get();
+                            if (snap.exists) {
+                              Map data = snap.value as Map;
+                              List players = data['players'] ?? [];
+                              int currentDealer = data['currentDealerIndex'] ?? 0;
+                              int nextDealer = (currentDealer + 1) % players.length;
 
-                            await _dbRef.child("rooms").child(widget.roomCode).update({
-                              "currentDealerIndex": nextDealer,
-                              "cardsDealt": false,
-                              "tableCards": [],
-                              "tableOwners": [],
-                            });
+                              await _dbRef.child("rooms").child(widget.roomCode).update({
+                                "currentDealerIndex": nextDealer,
+                                "cardsDealt": false,
+                                "tableCards": [],
+                                "tableOwners": [],
+                              });
+                            }
                           }
-                        }
-                        setState(() {
-                          game.dealNewDeck();
-                          cardsDealt = false;
-                        });
-                      },
-                    )
+                          setState(() {
+                            game.dealNewDeck();
+                            cardsDealt = false;
+                          });
+                        },
+                      )
+                    else
+                      Text(
+                        "Waiting for $dealerDisplayName to Deal Cards...",
+                        style: TextStyle(color: Colors.amberAccent, fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
                   ],
                 ),
               ),
