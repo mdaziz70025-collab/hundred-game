@@ -105,80 +105,82 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             game.targetScore = tScore;
           }
 
-          if (firebaseDealtStatus && roomData['hands'] != null) {
-            Map handsMap = roomData['hands'] as Map;
-            
-            for (int p = 0; p < game.players.length; p++) {
-              String pName = game.players[p].name;
-              var matchingKey = handsMap.keys.firstWhere(
-                (k) => k.toString().trim().toLowerCase() == pName.trim().toLowerCase(),
-                orElse: () => null,
-              );
-
-              if (matchingKey != null) {
-                List<int> pHand = List<int>.from(handsMap[matchingKey] ?? []);
-                game.players[p].hand = pHand;
-              }
-            }
-
-            if (roomData['scores'] != null) {
-              Map scoresMap = roomData['scores'] as Map;
+          if (!isCardFlying && !isProcessingTurn) {
+            if (firebaseDealtStatus && roomData['hands'] != null) {
+              Map handsMap = roomData['hands'] as Map;
+              
               for (int p = 0; p < game.players.length; p++) {
                 String pName = game.players[p].name;
-                var matchingKey = scoresMap.keys.firstWhere(
+                var matchingKey = handsMap.keys.firstWhere(
                   (k) => k.toString().trim().toLowerCase() == pName.trim().toLowerCase(),
                   orElse: () => null,
                 );
-                if (matchingKey != null) {
-                  int sVal = int.tryParse(scoresMap[matchingKey].toString()) ?? 0;
-                  game.players[p].currentScore = sVal;
 
-                  if (sVal >= game.targetScore && game.winnerName.isEmpty) {
-                    game.winnerName = pName;
+                if (matchingKey != null) {
+                  List<int> pHand = List<int>.from(handsMap[matchingKey] ?? []);
+                  game.players[p].hand = pHand;
+                }
+              }
+
+              if (roomData['scores'] != null) {
+                Map scoresMap = roomData['scores'] as Map;
+                for (int p = 0; p < game.players.length; p++) {
+                  String pName = game.players[p].name;
+                  var matchingKey = scoresMap.keys.firstWhere(
+                    (k) => k.toString().trim().toLowerCase() == pName.trim().toLowerCase(),
+                    orElse: () => null,
+                  );
+                  if (matchingKey != null) {
+                    int sVal = int.tryParse(scoresMap[matchingKey].toString()) ?? 0;
+                    game.players[p].currentScore = sVal;
+
+                    if (sVal >= game.targetScore && game.winnerName.isEmpty) {
+                      game.winnerName = pName;
+                    }
                   }
                 }
               }
-            }
 
-            if (roomData['wins'] != null) {
-              Map winsMap = roomData['wins'] as Map;
-              winsMap.forEach((key, value) {
-                game.playerWinsMap[key.toString()] = int.tryParse(value.toString()) ?? 0;
-              });
-            }
-
-            if (roomData['totalRoundsPlayed'] != null) {
-              game.totalRoundsPlayed = int.tryParse(roomData['totalRoundsPlayed'].toString()) ?? 0;
-            }
-
-            if (roomData['tableCards'] != null) {
-              List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
-              List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
-              game.currentRoundCards = tableCards;
-              game.playedCardOwners = tableOwners;
-            } else {
-              game.currentRoundCards = [];
-              game.playedCardOwners = [];
-            }
-
-            if (roomData['currentTurnPlayer'] != null) {
-              String activeTurnName = roomData['currentTurnPlayer'].toString().trim().toLowerCase();
-              int foundIndex = game.players.indexWhere((p) => p.name.trim().toLowerCase() == activeTurnName);
-              if (foundIndex != -1) {
-                game.currentPlayerIndex = foundIndex;
+              if (roomData['wins'] != null) {
+                Map winsMap = roomData['wins'] as Map;
+                winsMap.forEach((key, value) {
+                  game.playerWinsMap[key.toString()] = int.tryParse(value.toString()) ?? 0;
+                });
               }
-            }
 
-            if (mounted) {
-              setState(() {
-                cardsDealt = true;
-              });
-            }
-          } else if (!firebaseDealtStatus) {
-            if (mounted) {
-              setState(() {
-                cardsDealt = false;
-              });
+              if (roomData['totalRoundsPlayed'] != null) {
+                game.totalRoundsPlayed = int.tryParse(roomData['totalRoundsPlayed'].toString()) ?? 0;
+              }
+
+              if (roomData['tableCards'] != null) {
+                List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
+                List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
+                game.currentRoundCards = tableCards;
+                game.playedCardOwners = tableOwners;
+              } else {
+                game.currentRoundCards = [];
+                game.playedCardOwners = [];
+              }
+
+              if (roomData['currentTurnPlayer'] != null) {
+                String activeTurnName = roomData['currentTurnPlayer'].toString().trim().toLowerCase();
+                int foundIndex = game.players.indexWhere((p) => p.name.trim().toLowerCase() == activeTurnName);
+                if (foundIndex != -1) {
+                  game.currentPlayerIndex = foundIndex;
+                }
+              }
+
+              if (mounted) {
+                setState(() {
+                  cardsDealt = true;
+                });
+              }
+            } else if (!firebaseDealtStatus) {
+              if (mounted) {
+                setState(() {
+                  cardsDealt = false;
+                });
+              }
             }
           }
         }
