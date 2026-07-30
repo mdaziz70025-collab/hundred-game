@@ -11,7 +11,7 @@ class RoundHistory {
 class HundredGameLogic {
   final GameMode mode;
   final int totalPlayers;
-  final int targetScore;
+  int targetScore; // Made non-final so online sync can update it if needed
 
   List<Player> players = [];
   List<int> currentRoundCards = [];
