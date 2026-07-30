@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart'; // 👈 Firebase Core Package Import
+import 'package:firebase_core/firebase_core.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'game_models.dart';
 import 'game_screen.dart';
 import 'friend_room_screen.dart';
 
 void main() async {
-  // 👈 Firebase Initialization code (White Screen Crash Fix)
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await MobileAds.instance.initialize();
 
-  runApp(HundredGameApp());
+  AppOpenAdManager appOpenAdManager = AppOpenAdManager()..loadAd();
+
+  runApp(HundredGameApp(appOpenAdManager: appOpenAdManager));
 }
 
 class HundredGameApp extends StatelessWidget {
+  final AppOpenAdManager appOpenAdManager;
+
+  HundredGameApp({required this.appOpenAdManager});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -24,6 +31,49 @@ class HundredGameApp extends StatelessWidget {
       ),
       home: HomeScreen(),
     );
+  }
+}
+
+class AppOpenAdManager {
+  AppOpenAd? _appOpenAd;
+  bool _isShowingAd = false;
+  final String _appOpenAdUnitId = 'ca-app-pub-3940256099942544/9257395921';
+
+  void loadAd() {
+    AppOpenAd.load(
+      adUnitId: _appOpenAdUnitId,
+      request: const AdRequest(),
+      adLoadCallback: AppOpenAdLoadCallback(
+        onAdLoaded: (ad) {
+          _appOpenAd = ad;
+          showAdIfAvailable();
+        },
+        onAdFailedToLoad: (error) {
+          debugPrint('AppOpenAd failed to load: $error');
+        },
+      ),
+    );
+  }
+
+  void showAdIfAvailable() {
+    if (_appOpenAd != null && !_isShowingAd) {
+      _appOpenAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdShowedFullScreenContent: (ad) {
+          _isShowingAd = true;
+        },
+        onAdDismissedFullScreenContent: (ad) {
+          _isShowingAd = false;
+          ad.dispose();
+          _appOpenAd = null;
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          _isShowingAd = false;
+          ad.dispose();
+          _appOpenAd = null;
+        },
+      );
+      _appOpenAd!.show();
+    }
   }
 }
 
@@ -128,7 +178,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // GAME MODE LAUNCHER
   void _startMatchWithOptions(String modeType) {
     if (modeType == 'FRIENDS') {
       Navigator.push(
@@ -222,7 +271,6 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
           child: Column(
             children: [
-              // 1. PROFILE & STATS CARD
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -290,13 +338,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-
               SizedBox(height: 20),
-
-              // 2. GAME MODE BUTTONS
               Text("🎮 Select Game Mode", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber)),
               SizedBox(height: 12),
-
               Row(
                 children: [
                   Expanded(child: _buildModeCard("ONLINE", "🌍", Colors.blue.shade700, () => _startMatchWithOptions("ONLINE"))),
@@ -312,10 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(child: _buildModeCard("PASS N PLAY", "👥", Colors.green.shade700, () => _startMatchWithOptions("PASS"))),
                 ],
               ),
-
               SizedBox(height: 20),
-
-              // 3. GAME SETTINGS
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Color(0xFF1E293B), borderRadius: BorderRadius.circular(15)),
@@ -343,9 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-
               SizedBox(height: 12),
-
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Color(0xFF1E293B), borderRadius: BorderRadius.circular(15)),
