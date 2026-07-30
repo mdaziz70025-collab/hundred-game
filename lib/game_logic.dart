@@ -58,7 +58,7 @@ class HundredGameLogic {
 
   void dealNewDeck() {
     isDeckFinished = false;
-    isFirstRound = true; // Har baji ke pehle hand me lowest card rule compulsory rahega
+    isFirstRound = true;
     showFirstTurnDialog = false;
     currentRoundCards.clear();
     playedCardOwners.clear();
@@ -82,7 +82,6 @@ class HundredGameLogic {
       players[i].hand = hand;
     }
 
-    // Har baji me lowest card wale player ka pehla turn determine hoga
     determineFirstPlayer();
   }
 
@@ -107,7 +106,7 @@ class HundredGameLogic {
   }
 
   void revealFirstTurnDialog() {
-    showFirstTurnDialog = true; // Dialog popup har baji me aayega
+    showFirstTurnDialog = true;
   }
 
   void playCard(int cardValue) {
