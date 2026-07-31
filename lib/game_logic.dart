@@ -114,6 +114,8 @@ class HundredGameLogic {
     if (players.isEmpty || currentPlayerIndex >= players.length) return;
     Player current = players[currentPlayerIndex];
 
+    if (!current.hand.contains(cardValue)) return;
+
     if (isFirstRound) {
       if (current.hand.contains(5) && cardValue != 5) {
         warningMsg = "Pehle 5 number card hi chalna hoga!";
