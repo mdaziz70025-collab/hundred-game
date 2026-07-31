@@ -458,10 +458,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       game.warningMsg = "";
     });
 
-    await Future.delayed(Duration(milliseconds: 150));
-
-    if (!mounted) return;
-
     game.playCard(cardValue);
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
@@ -485,6 +481,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         "currentTurnPlayer": nextTurnPlayerName,
       });
     }
+
+    await Future.delayed(Duration(milliseconds: 200));
 
     if (mounted) {
       setState(() {
