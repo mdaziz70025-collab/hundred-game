@@ -193,8 +193,13 @@ class HundredGameLogic {
     playedCardOwners.clear();
 
     bool allHandsEmpty = players.every((p) => p.hand.isEmpty);
-    if (allHandsEmpty && winnerName.isEmpty) {
-      isDeckFinished = true;
+    
+    if (allHandsEmpty) {
+      if (winnerName.isNotEmpty) {
+        isDeckFinished = false;
+      } else {
+        isDeckFinished = true;
+      }
     } else if (mode == GameMode.offline) {
       isCardHiddenForPass = true;
     }
