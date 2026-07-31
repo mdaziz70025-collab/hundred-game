@@ -458,7 +458,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       game.warningMsg = "";
     });
 
-    await Future.delayed(Duration(milliseconds: 250));
+    await Future.delayed(Duration(milliseconds: 150));
 
     if (!mounted) return;
 
