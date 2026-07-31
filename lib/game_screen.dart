@@ -458,6 +458,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       game.warningMsg = "";
     });
 
+    await Future.delayed(Duration(milliseconds: 50));
+
+    if (!mounted) return;
+
     game.playCard(cardValue);
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
@@ -481,8 +485,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         "currentTurnPlayer": nextTurnPlayerName,
       });
     }
-
-    await Future.delayed(Duration(milliseconds: 200));
 
     if (mounted) {
       setState(() {
@@ -700,13 +702,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ? (p.name.trim().toLowerCase() == widget.myPlayerName.trim().toLowerCase())
         : (realIndex == 0);
 
+    List<int> displayHand = List.from(p.hand);
+    if (isCardFlying && flyingCardValue != null && isCurrentTurn) {
+      displayHand.remove(flyingCardValue);
+    }
+
     if (widget.mode == GameMode.friend) {
       if (isMyDevicePlayer) {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: p.hand.map((cardValue) {
+            children: displayHand.map((cardValue) {
               return _buildPlayingCard(
                 value: cardValue,
                 onTap: (isProcessingTurn || isCardFlying || !isCurrentTurn || !_isMyTurn) ? null : () => _handleCardTap(cardValue),
@@ -724,7 +731,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (shouldShowCards) {
       if (isVertical) {
         return Column(
-          children: p.hand.map((cardValue) {
+          children: displayHand.map((cardValue) {
             return _buildPlayingCard(
               value: cardValue,
               onTap: (isProcessingTurn || isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
@@ -736,7 +743,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           scrollDirection: Axis.horizontal,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: p.hand.map((cardValue) {
+            children: displayHand.map((cardValue) {
               return _buildPlayingCard(
                 value: cardValue,
                 onTap: (isProcessingTurn || isCardFlying || !isCurrentTurn) ? null : () => _handleCardTap(cardValue),
