@@ -19,6 +19,18 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1 # 👈 Icon generate karne ke liye package add kiya
+
+# 👈 Icon ki configuration yahan daali gayi hai
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/app_logo.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true
+  
+  # 👈 Apne logo ki path yahan add ki hai
+  assets:
+    - assets/app_logo.png
