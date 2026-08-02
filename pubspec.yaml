@@ -1,34 +1,49 @@
-name: card_game_100
-description: "A 100 Card Game built with Flutter"
-publish_to: 'none'
+name: Flutter Build APK
 
-version: 1.0.0+1
+on:
+  push:
+    branches:
+      - main
+      - master
+      - Perfect-Game
+      - restored-game
+  workflow_dispatch:
 
-environment:
-  sdk: '>=3.0.0 <4.0.0'
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-dependencies:
-  flutter:
-    sdk: flutter
-  cupertino_icons: ^1.0.6
-  google_mobile_ads: ^9.0.0
-  firebase_core: ^3.0.0
-  firebase_database: ^11.0.0
+    steps:
+      - uses: actions/checkout@v4
 
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.13.1
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-flutter_launcher_icons:
-  android: true
-  ios: true
-  image_path: "assets/app_logo.png"
-  remove_alpha_ios: true
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
 
-flutter:
-  uses-material-design: true
+      - name: Locate pubspec.yaml, Generate Icons, and Build
+        run: |
+          PUBSPEC_PATH=$(find . -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
+          if [ -z "$PUBSPEC_PATH" ]; then
+            echo "Error: pubspec.yaml nahi mila!"
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$PUBSPEC_PATH")
+          echo "Project directory: $PROJECT_DIR"
+          
+          cd "$PROJECT_DIR"
+          flutter pub get
+          dart run flutter_launcher_icons || true
+          flutter build apk --release --android-skip-build-dependency-validation
 
-  assets:
-    - assets/app_logo.png
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: '**/build/app/outputs/flutter-apk/app-release.apk'
