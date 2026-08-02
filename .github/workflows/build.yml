@@ -27,7 +27,7 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Locate pubspec.yaml and Build
+      - name: Locate pubspec.yaml, Generate Icons, and Build
         run: |
           PUBSPEC_PATH=$(find . -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
           if [ -z "$PUBSPEC_PATH" ]; then
@@ -39,6 +39,7 @@ jobs:
           
           cd "$PROJECT_DIR"
           flutter pub get
+          dart run flutter_launcher_icons  # 👈 Yeh line app icon generate karegi
           flutter build apk --release --android-skip-build-dependency-validation
 
       - name: Upload APK
