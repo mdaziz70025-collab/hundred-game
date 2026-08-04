@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'menu_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -8,6 +10,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController nameController = TextEditingController();
+  bool isLoading = false;
 
   void proceedToMenu(String userName) {
     if (userName.trim().isEmpty) return;
@@ -17,94 +20,149 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // Real Facebook Sign-In Logic
+  Future<void> signInWithFacebook() async {
+    setState(() => isLoading = true);
+    try {
+      final LoginResult result = await FacebookAuth.instance.login(
+        permissions: ['public_profile', 'email'],
+      );
+
+      if (result.status == LoginStatus.success) {
+        final AccessToken accessToken = result.accessToken!;
+        final OAuthCredential credential = FacebookAuthProvider.credential(
+          accessToken.tokenString,
+        );
+
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
+
+        String userName = userCredential.user?.displayName ?? "FB Player";
+        proceedToMenu(userName);
+      } else if (result.status == LoginStatus.cancelled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Facebook Login cancelled")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Facebook Login Error: ${result.message}")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFF0F172A),
       body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo Header
-              Icon(Icons.style, size: 80, color: Colors.amber),
-              SizedBox(height: 10),
-              Text(
-                "100 CARD GAME",
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.amber),
-              ),
-              Text(
-                "Welcome! Please login to continue.",
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-              SizedBox(height: 40),
+        child: isLoading
+            ? CircularProgressIndicator(color: Colors.amber)
+            : SingleChildScrollView(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo Header
+                    Icon(Icons.style, size: 80, color: Colors.amber),
+                    SizedBox(height: 10),
+                    Text(
+                      "100 CARD GAME",
+                      style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber),
+                    ),
+                    Text(
+                      "Welcome! Please login to continue.",
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                    SizedBox(height: 40),
 
-              // 1. Facebook Login
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF1877F2),
-                  minimumSize: Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                icon: Icon(Icons.facebook, color: Colors.white),
-                label: Text("Continue with Facebook", style: TextStyle(color: Colors.white, fontSize: 16)),
-                onPressed: () => proceedToMenu("FB Player"),
-              ),
-              SizedBox(height: 12),
+                    // 1. Facebook Login
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF1877F2),
+                        minimumSize: Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: Icon(Icons.facebook, color: Colors.white),
+                      label: Text("Continue with Facebook",
+                          style: TextStyle(color: Colors.white, fontSize: 16)),
+                      onPressed: signInWithFacebook,
+                    ),
+                    SizedBox(height: 12),
 
-              // 2. Phone Login
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
-                  minimumSize: Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                icon: Icon(Icons.phone, color: Colors.white),
-                label: Text("Continue with Mobile Number", style: TextStyle(color: Colors.white, fontSize: 16)),
-                onPressed: () => proceedToMenu("Mobile User"),
-              ),
-              SizedBox(height: 25),
+                    // 2. Phone Login
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade700,
+                        minimumSize: Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: Icon(Icons.phone, color: Colors.white),
+                      label: Text("Continue with Mobile Number",
+                          style: TextStyle(color: Colors.white, fontSize: 16)),
+                      onPressed: () => proceedToMenu("Mobile User"),
+                    ),
+                    SizedBox(height: 25),
 
-              Row(
-                children: [
-                  Expanded(child: Divider(color: Colors.white30)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                    child: Text("OR", style: TextStyle(color: Colors.white54)),
-                  ),
-                  Expanded(child: Divider(color: Colors.white30)),
-                ],
-              ),
-              SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: Colors.white30)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                          child: Text("OR",
+                              style: TextStyle(color: Colors.white54)),
+                        ),
+                        Expanded(child: Divider(color: Colors.white30)),
+                      ],
+                    ),
+                    SizedBox(height: 20),
 
-              // 3. Guest Login
-              TextField(
-                controller: nameController,
-                style: TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Color(0xFF1B2A47),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  labelText: "Enter Guest Name",
-                  labelStyle: TextStyle(color: Colors.white70),
-                  prefixIcon: Icon(Icons.person_outline, color: Colors.amber),
+                    // 3. Guest Login
+                    TextField(
+                      controller: nameController,
+                      style: TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Color(0xFF1B2A47),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        labelText: "Enter Guest Name",
+                        labelStyle: TextStyle(color: Colors.white70),
+                        prefixIcon:
+                            Icon(Icons.person_outline, color: Colors.amber),
+                      ),
+                    ),
+                    SizedBox(height: 14),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber,
+                        foregroundColor: Colors.black,
+                        minimumSize: Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Text("Play as Guest",
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      onPressed: () => proceedToMenu(
+                          nameController.text.isEmpty
+                              ? "Guest"
+                              : nameController.text),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: 14),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.black,
-                  minimumSize: Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: Text("Play as Guest", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                onPressed: () => proceedToMenu(nameController.text.isEmpty ? "Guest" : nameController.text),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
