@@ -16,8 +16,8 @@ dependencies:
   firebase_auth: ^4.16.0
   firebase_database: ^10.4.0
 
-  # Ads
-  google_mobile_ads: ^4.0.0
+  # Ads (Updated to Gradle 8 compatible version)
+  google_mobile_ads: ^5.2.0
   
   # Social Logins
   google_sign_in: ^6.1.6
