@@ -39,8 +39,8 @@ jobs:
           
           cd "$PROJECT_DIR"
           flutter pub get
-          dart run flutter_launcher_icons  # 👈 Yeh line app icon generate karegi
-          flutter build apk --release --android-skip-build-dependency-validation
+          dart run flutter_launcher_icons || true  # 👈 Icons generate honge, error aaye toh bypass ho jayega
+          flutter build apk --release              # 👈 Clean release build without force-upgrade flag
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
