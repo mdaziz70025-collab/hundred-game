@@ -4,6 +4,8 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'menu_screen.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -68,7 +70,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.style, size: 80, color: Colors.amber),
+                    Image.asset(
+                      'assets/logo.png',
+                      height: 100,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.style, size: 80, color: Colors.amber),
+                    ),
                     const SizedBox(height: 10),
                     const Text(
                       "100 CARD GAME",
@@ -83,6 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 40),
 
+                    // Facebook Login Button
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1877F2),
@@ -97,6 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 12),
 
+                    // Phone Login Button
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade700,
@@ -124,6 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
 
+                    // Guest Login
                     TextField(
                       controller: nameController,
                       style: const TextStyle(color: Colors.white),
