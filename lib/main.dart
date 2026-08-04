@@ -142,8 +142,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
         
-        // 👈 Fixed: accessToken.tokenString -> accessToken.token
-        final OAuthCredential credential = FacebookAuthProvider.credential(accessToken.token);
+        // 👈 Fixed for flutter_facebook_auth 7.x: accessToken.tokenString
+        final OAuthCredential credential = FacebookAuthProvider.credential(accessToken.tokenString);
 
         UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
@@ -310,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
     List<TextEditingController> controllers = List.generate(
       selectedPlayers,
       (index) => TextEditingController(
-        text: index == 0 ? userProfile.name : (modeType == 'COMPUTER' ? "Bot ${index}" : "Player ${index + 1}"),
+        text: index == 0 ? userProfile.name : (modeType == 'COMPUTER' ? "Bot $index" : "Player ${index + 1}"),
       ),
     );
 
