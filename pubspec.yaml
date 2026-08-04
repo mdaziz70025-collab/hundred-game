@@ -11,10 +11,19 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Firebase Packages
   firebase_core: ^2.27.0
   firebase_auth: ^4.16.0
+  firebase_database: ^10.4.0   # 👈 Database added
+
+  # Ads
+  google_mobile_ads: ^5.0.0    # 👈 Mobile Ads added
+  
+  # Social Logins
   google_sign_in: ^6.1.6
   flutter_facebook_auth: ^6.0.4
+
+  # UI Components
   cupertino_icons: ^1.0.6
 
 dev_dependencies:
