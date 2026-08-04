@@ -17,7 +17,7 @@ dependencies:
   
   # Social Logins
   google_sign_in: ^6.1.6
-  flutter_facebook_auth: ^6.0.4  # Facebook Login ke liye
+  flutter_facebook_auth: ^6.0.4
 
   # UI Components
   cupertino_icons: ^1.0.6
