@@ -3,6 +3,5 @@
     <string name="app_name">Card100Game</string>
     <string name="facebook_app_id">2807601432938608</string>
     <string name="fb_login_protocol_scheme">fb2807601432938608</string>
-    <!-- Meta Developers Dashboard > App settings > Advanced se Client token paste karein -->
     <string name="facebook_client_token">YOUR_CLIENT_TOKEN_HERE</string>
 </resources>
