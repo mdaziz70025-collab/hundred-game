@@ -1,5 +1,5 @@
 name: card100game
-description: "Card 100 Game Application with Facebook & Firebase Auth"
+description: "Card 100 Game Application"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -11,28 +11,16 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase Core & Auth
   firebase_core: ^2.27.0
   firebase_auth: ^4.16.0
-  
-  # Social Logins
   google_sign_in: ^6.1.6
   flutter_facebook_auth: ^6.0.4
-
-  # UI Components
   cupertino_icons: ^1.0.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.14.3
-
-flutter_launcher_icons:
-  android: true
-  ios: false
-  image_path: "assets/logo.png"
-  min_sdk_android: 21
 
 flutter:
   uses-material-design: true
