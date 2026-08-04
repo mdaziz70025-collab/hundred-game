@@ -27,6 +27,15 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// 👈 Yeh block sabhi third-party plugins (jaise flutter_facebook_auth) ke liye Java 17 compatibility enforce karega
+subprojects {
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
