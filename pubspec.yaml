@@ -1,5 +1,5 @@
-name: card_game_100
-description: "A 100 Card Game built with Flutter"
+name: card100game
+description: "Card 100 Game Application"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -10,27 +10,33 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # Firebase Core & Auth
+  firebase_core: ^2.27.0
+  firebase_auth: ^4.16.0
+  
+  # Social Logins
+  google_sign_in: ^6.1.6
+  flutter_facebook_auth: ^6.0.4  # Facebook Login ke liye
+
+  # UI Components
   cupertino_icons: ^1.0.6
-  google_mobile_ads: ^9.0.0
-  firebase_core: ^3.0.0
-  firebase_database: ^11.0.0
-  firebase_auth: ^5.0.0         # 👈 Added for Login Auth
-  google_sign_in: ^6.2.1       # 👈 Added for Google Login
-  flutter_facebook_auth: ^6.0.2 # 👈 Added for Facebook Login
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.14.4
+  flutter_launcher_icons: ^0.13.1
 
 flutter_launcher_icons:
-  android: true
-  ios: false
-  image_path: "assets/app_logo.png"
+  android: "launch_background"
+  ios: true
+  image_path: "assets/logo.png"
+  min_sdk_android: 23
 
 flutter:
   uses-material-design: true
 
   assets:
-    - assets/app_logo.png
+    - assets/
+    - assets/logo.png
