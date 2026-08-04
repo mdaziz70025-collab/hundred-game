@@ -1,6 +1,8 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.hundred_game">
+
     <application
-        android:label="Card100Game"
+        android:label="100 Card Game"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
@@ -28,6 +30,7 @@
             </intent-filter>
         </activity>
 
+        <!-- Main Flutter Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
