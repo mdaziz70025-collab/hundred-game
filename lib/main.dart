@@ -118,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-      
+
       setState(() {
         _currentUser = userCredential.user;
         userProfile.name = _currentUser?.displayName ?? "Player 1";
@@ -141,7 +141,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final LoginResult result = await FacebookAuth.instance.login();
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
-        final OAuthCredential credential = FacebookAuthProvider.credential(accessToken.tokenString);
+        
+        // 👈 Fixed: accessToken.tokenString -> accessToken.token
+        final OAuthCredential credential = FacebookAuthProvider.credential(accessToken.token);
 
         UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
