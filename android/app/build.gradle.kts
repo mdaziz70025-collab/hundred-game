@@ -15,7 +15,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // 👈 Yeh block exact Kotlin JVM Target compatibility sync karega
     kotlinOptions {
         jvmTarget = "17"
     }
