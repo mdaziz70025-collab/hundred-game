@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'game_models.dart';
 import 'game_logic.dart';
 
@@ -63,18 +64,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _loadBannerAd();
     _loadInterstitialAd();
 
+    // Check Firebase Logged In User for verified display
+    User? user = FirebaseAuth.instance.currentUser;
+    List<String> names = List.from(widget.playerNames);
+    if (user != null && names.isNotEmpty && widget.mode != GameMode.friend) {
+      names[0] = user.displayName ?? names[0];
+    }
+
     game = HundredGameLogic(
       mode: widget.mode,
       totalPlayers: widget.totalPlayers,
       targetScore: widget.targetScore,
     );
-    game.startMatch(widget.playerNames);
+    game.startMatch(names);
 
     cardsDealt = false;
 
     _turnAnimationController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 600),
     )..repeat(reverse: true);
 
     _turnScaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
@@ -344,11 +352,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           currentDealingCardIndex++;
         });
         _playSoundEffect();
-        await Future.delayed(Duration(milliseconds: 120));
+        await Future.delayed(const Duration(milliseconds: 120));
       }
     }
 
-    await Future.delayed(Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 200));
     if (mounted) {
       _playHeavySoundEffect();
       setState(() {
@@ -378,7 +386,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (current.hand.isEmpty) return;
 
     if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
-      await Future.delayed(Duration(milliseconds: 700));
+      await Future.delayed(const Duration(milliseconds: 700));
       if (!mounted) return;
 
       List<int> playableCards = [];
@@ -458,7 +466,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       game.warningMsg = "";
     });
 
-    await Future.delayed(Duration(milliseconds: 50));
+    await Future.delayed(const Duration(milliseconds: 50));
 
     if (!mounted) return;
 
@@ -500,16 +508,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Exit Game?"),
-        content: Text("Kya aap game chhod kar baahar jaana chahte hain?"),
+        title: const Text("Exit Game?"),
+        content: const Text("Kya aap game chhod kar baahar jaana chahte hain?"),
         actions: [
           TextButton(
-            child: Text("NO"),
+            child: const Text("NO"),
             onPressed: () => Navigator.pop(context, false),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text("YES, EXIT"),
+            child: const Text("YES, EXIT"),
             onPressed: () => Navigator.pop(context, true),
           ),
         ],
@@ -520,11 +528,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _showScoreHistoryDrawer() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Color(0xFF0F172A),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return Container(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           height: 350,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,22 +540,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("📊 Match Score History", style: TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.bold)),
-                  IconButton(icon: Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
+                  const Text("📊 Match Score History", style: TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.bold)),
+                  IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.pop(context)),
                 ],
               ),
-              Divider(color: Colors.white30),
+              const Divider(color: Colors.white30),
               Expanded(
                 child: game.roundHistoryList.isEmpty
-                    ? Center(child: Text("Abhi tak koi baji nahi kheli gayi.", style: TextStyle(color: Colors.white54)))
+                    ? const Center(child: Text("Abhi tak koi baji nahi kheli gayi.", style: TextStyle(color: Colors.white54)))
                     : ListView.builder(
                         itemCount: game.roundHistoryList.length,
                         itemBuilder: (context, index) {
                           var history = game.roundHistoryList[index];
                           return ListTile(
-                            leading: CircleAvatar(backgroundColor: Colors.amber, child: Text("#${history.roundNumber}", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
-                            title: Text("Winner: ${history.winnerName}", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            trailing: Text("+${history.points} pts", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 15)),
+                            leading: CircleAvatar(backgroundColor: Colors.amber, child: Text("#${history.roundNumber}", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+                            title: Text("Winner: ${history.winnerName}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            trailing: Text("+${history.points} pts", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 15)),
                           );
                         },
                       ),
@@ -580,7 +588,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       child: Container(
         width: 46,
         height: 68,
-        margin: EdgeInsets.symmetric(horizontal: 2),
+        margin: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(6),
@@ -593,7 +601,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               color: isHighValue ? Colors.amber.withOpacity(0.4) : Colors.black38,
               blurRadius: isHighValue ? 6 : 3,
               spreadRadius: 1,
-              offset: Offset(1, 2),
+              offset: const Offset(1, 2),
             )
           ],
         ),
@@ -625,13 +633,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return Container(
       width: isVertical ? 22 : 30,
       height: isVertical ? 34 : 22,
-      margin: EdgeInsets.all(2),
+      margin: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: Colors.indigo.shade900,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white70, width: 1),
       ),
-      child: Center(child: Text("🎴", style: TextStyle(fontSize: 8))),
+      child: const Center(child: Text("🎴", style: TextStyle(fontSize: 8))),
     );
   }
 
@@ -642,7 +650,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     int wins = game.playerWinsMap[player.name] ?? 0;
 
     Widget textWidget = Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isReceivingCard 
             ? Colors.amber.shade800 
@@ -660,7 +668,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (isDealer) ...[
-                Text("🎴 ", style: TextStyle(fontSize: 10)),
+                const Text("🎴 ", style: TextStyle(fontSize: 10)),
               ],
               Text(
                 "${player.name} : ${player.currentScore} pts",
@@ -692,8 +700,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildPlayerHandView(int realIndex, {bool isVertical = false}) {
-    if (!cardsDealt) return SizedBox.shrink();
-    if (realIndex >= game.players.length) return SizedBox.shrink();
+    if (!cardsDealt) return const SizedBox.shrink();
+    if (realIndex >= game.players.length) return const SizedBox.shrink();
 
     Player p = game.players[realIndex];
     bool isCurrentTurn = (game.currentPlayerIndex == realIndex);
@@ -722,7 +730,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ),
         );
       } else {
-        return SizedBox.shrink();
+        return const SizedBox.shrink();
       }
     }
 
@@ -769,7 +777,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     if (game.players.isEmpty) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Color(0xFF1B2A47),
         body: Center(child: CircularProgressIndicator(color: Colors.amber)),
       );
@@ -786,12 +794,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return WillPopScope(
       onWillPop: _showExitDialog,
       child: Scaffold(
-        backgroundColor: Color(0xFF1B2A47),
+        backgroundColor: const Color(0xFF1B2A47),
         appBar: AppBar(
-          backgroundColor: Color(0xFF0F172A),
+          backgroundColor: const Color(0xFF0F172A),
           elevation: 4,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.white),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () async {
               if (await _showExitDialog()) {
                 Navigator.pop(context);
@@ -804,8 +812,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("100 Card Game", style: TextStyle(color: Colors.white, fontSize: 15)),
-                  Text("Round/Baji: #${game.totalRoundsPlayed}", style: TextStyle(color: Colors.amberAccent, fontSize: 11)),
+                  const Text("100 Card Game", style: TextStyle(color: Colors.white, fontSize: 15)),
+                  Text("Round/Baji: #${game.totalRoundsPlayed}", style: const TextStyle(color: Colors.amberAccent, fontSize: 11)),
                 ],
               ),
               Row(
@@ -822,18 +830,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     },
                   ),
                   IconButton(
-                    icon: Icon(Icons.history, color: Colors.amber),
+                    icon: const Icon(Icons.history, color: Colors.amber),
                     onPressed: _showScoreHistoryDrawer,
                   ),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.amber,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       "TARGET: ${game.targetScore}",
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ),
                 ],
@@ -845,16 +853,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           children: [
             Column(
               children: [
-                SizedBox(height: 25),
+                const SizedBox(height: 25),
                 if (game.players.length >= 3)
                   Column(
                     children: [
                       _buildPlayerLabel(game.players[topIdx], topIdx),
-                      SizedBox(height: 6),
+                      const SizedBox(height: 6),
                       _buildPlayerHandView(topIdx),
                     ],
                   ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -864,18 +872,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         child: Column(
                           children: [
                             _buildPlayerLabel(game.players[leftIdx], leftIdx, isRotated: true, quarterTurns: 1),
-                            SizedBox(height: 6),
+                            const SizedBox(height: 6),
                             _buildPlayerHandView(leftIdx, isVertical: true),
                           ],
                         ),
                       )
                     else
-                      SizedBox(width: 40),
+                      const SizedBox(width: 40),
                     Container(
                       width: 175,
                       height: 175,
                       decoration: BoxDecoration(
-                        gradient: RadialGradient(
+                        gradient: const RadialGradient(
                           colors: [
                             Color(0xFF0F5132),
                             Color(0xFF06321D),
@@ -884,7 +892,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         ),
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.amber.shade600, width: 4),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(color: Colors.black87, blurRadius: 12, spreadRadius: 2)
                         ],
                       ),
@@ -896,19 +904,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                       backgroundColor: Colors.amber,
                                       foregroundColor: Colors.black,
                                     ),
-                                    icon: Icon(Icons.style),
-                                    label: Text("DEAL CARDS", style: TextStyle(fontWeight: FontWeight.bold)),
+                                    icon: const Icon(Icons.style),
+                                    label: const Text("DEAL CARDS", style: TextStyle(fontWeight: FontWeight.bold)),
                                     onPressed: _startDealingAnimation,
                                   )
                                 : Container(
-                                    padding: EdgeInsets.all(8),
+                                    padding: const EdgeInsets.all(8),
                                     child: Column(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
                                           "Waiting for $dealerDisplayName to Deal...",
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12),
+                                          style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12),
                                         ),
                                       ],
                                     ),
@@ -917,8 +925,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 ? Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text("Dealing Cards...", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 13)),
-                                      SizedBox(height: 6),
+                                      const Text("Dealing Cards...", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 13)),
+                                      const SizedBox(height: 6),
                                       Container(
                                         width: 38,
                                         height: 54,
@@ -927,10 +935,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                           borderRadius: BorderRadius.circular(6),
                                           border: Border.all(color: Colors.amber, width: 2),
                                         ),
-                                        child: Center(child: Text("🎴", style: TextStyle(fontSize: 16))),
+                                        child: const Center(child: Text("🎴", style: TextStyle(fontSize: 16))),
                                       ),
-                                      SizedBox(height: 6),
-                                      Text("Card #$currentDealingCardIndex", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                      const SizedBox(height: 6),
+                                      Text("Card #$currentDealingCardIndex", style: const TextStyle(color: Colors.white70, fontSize: 11)),
                                     ],
                                   )
                                 : Column(
@@ -945,15 +953,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                             return Column(
                                               children: [
                                                 _buildPlayingCard(value: game.currentRoundCards[index]),
-                                                SizedBox(height: 2),
-                                                Text(game.playedCardOwners[index], style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                                const SizedBox(height: 2),
+                                                Text(game.playedCardOwners[index], style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                                               ],
                                             );
                                           }),
                                           if (isCardFlying && flyingCardValue != null)
                                             AnimatedScale(
                                               scale: 1.1,
-                                              duration: Duration(milliseconds: 300),
+                                              duration: const Duration(milliseconds: 300),
                                               child: _buildPlayingCard(value: flyingCardValue!),
                                             ),
                                         ],
@@ -968,26 +976,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         child: Column(
                           children: [
                             _buildPlayerLabel(game.players[rightIdx], rightIdx, isRotated: true, quarterTurns: 3),
-                            SizedBox(height: 6),
+                            const SizedBox(height: 6),
                             _buildPlayerHandView(rightIdx, isVertical: true),
                           ],
                         ),
                       )
                     else
-                      SizedBox(width: 40),
+                      const SizedBox(width: 40),
                   ],
                 ),
-                SizedBox(height: 25),
+                const SizedBox(height: 25),
                 _buildPlayerLabel(game.players[bottomIdx], bottomIdx),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 _buildPlayerHandView(bottomIdx),
-                Spacer(),
+                const Spacer(),
                 if (game.warningMsg.isNotEmpty)
                   Container(
                     color: Colors.redAccent,
-                    margin: EdgeInsets.only(bottom: 10),
-                    padding: EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-                    child: Text(game.warningMsg, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                    child: Text(game.warningMsg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
 
                 if (_isBannerAdLoaded && _bannerAd != null)
@@ -1004,11 +1012,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               Container(
                 color: Colors.black54,
                 child: AlertDialog(
-                  title: Text("Lowest Card Rule"),
+                  title: const Text("Lowest Card Rule"),
                   content: Text(game.firstTurnNotice),
                   actions: [
                     ElevatedButton(
-                      child: Text("Start Turn"),
+                      child: const Text("Start Turn"),
                       onPressed: () {
                         setState(() => game.showFirstTurnDialog = false);
                         _checkAndPlayNextTurn();
@@ -1025,18 +1033,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("🃏 Baji Khatam! 🃏", style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 15),
-                    Text("Target score abhi tak kisi ne hit nahi kiya.", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    SizedBox(height: 25),
+                    const Text("🃏 Baji Khatam! 🃏", style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
+                    const Text("Target score abhi tak kisi ne hit nahi kiya.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    const SizedBox(height: 25),
                     if (_canCurrentPlayerDeal || widget.isHost)
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
-                          padding: EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                         ),
-                        icon: Icon(Icons.style, color: Colors.white),
-                        label: Text("AGLI BAJI DEAL KAREIN", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                        icon: const Icon(Icons.style, color: Colors.white),
+                        label: const Text("AGLI BAJI DEAL KAREIN", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
                         onPressed: () async {
                           if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
                             DataSnapshot snap = await _dbRef.child("rooms").child(widget.roomCode).get();
@@ -1066,11 +1074,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     else
                       Column(
                         children: [
-                          CircularProgressIndicator(color: Colors.amber),
-                          SizedBox(height: 15),
+                          const CircularProgressIndicator(color: Colors.amber),
+                          const SizedBox(height: 15),
                           Text(
                             "Waiting for $dealerDisplayName to Deal Cards...",
-                            style: TextStyle(color: Colors.amberAccent, fontSize: 15, fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: Colors.amberAccent, fontSize: 15, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -1086,19 +1094,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (game.lastRoundWinnerMsg.isNotEmpty) ...[
-                      Text(game.lastRoundWinnerMsg, style: TextStyle(color: Colors.amber, fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                      SizedBox(height: 25),
+                      Text(game.lastRoundWinnerMsg, style: const TextStyle(color: Colors.amber, fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                      const SizedBox(height: 25),
                     ],
-                    Text("Pass Phone to:", style: TextStyle(color: Colors.white70, fontSize: 16)),
-                    SizedBox(height: 6),
-                    Text("Turn: ${activePlayer.name}", textAlign: TextAlign.center, style: TextStyle(color: Colors.amberAccent, fontSize: 28, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 30),
+                    const Text("Pass Phone to:", style: TextStyle(color: Colors.white70, fontSize: 16)),
+                    const SizedBox(height: 6),
+                    Text("Turn: ${activePlayer.name}", textAlign: TextAlign.center, style: const TextStyle(color: Colors.amberAccent, fontSize: 28, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 30),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
-                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       ),
-                      child: Text("NEXT TURN / CONTINUE", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text("NEXT TURN / CONTINUE", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
                       onPressed: () => setState(() {
                         game.isCardHiddenForPass = false;
                         game.lastRoundWinnerMsg = "";
@@ -1116,19 +1124,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("🎆 👑 🎆", style: TextStyle(fontSize: 40)),
-                    SizedBox(height: 10),
-                    Text("🎉 ${game.winnerName} WINS THE MATCH! 🎉", style: TextStyle(color: Colors.yellow, fontSize: 26, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                    SizedBox(height: 10),
-                    Text("Congratulations! Champion of 100 Card Game!", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    SizedBox(height: 30),
+                    const Text("🎆 👑 🎆", style: TextStyle(fontSize: 40)),
+                    const SizedBox(height: 10),
+                    Text("🎉 ${game.winnerName} WINS THE MATCH! 🎉", style: const TextStyle(color: Colors.yellow, fontSize: 26, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                    const SizedBox(height: 10),
+                    const Text("Congratulations! Champion of 100 Card Game!", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    const SizedBox(height: 30),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,
                         foregroundColor: Colors.black,
-                        padding: EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                       ),
-                      child: Text("BACK TO MENU", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: const Text("BACK TO MENU", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       onPressed: () {
                         _showInterstitialAd(onAdDismissed: () {
                           Navigator.pop(context);
