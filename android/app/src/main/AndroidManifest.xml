@@ -6,6 +6,11 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
+        <!-- 👈 Yeh line explicitly v2 embedding declare karti hai -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+
         <!-- Facebook Config Meta Data -->
         <meta-data 
             android:name="com.facebook.sdk.ApplicationId" 
@@ -30,7 +35,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Main Flutter Activity (Android v2 Embedding) -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
