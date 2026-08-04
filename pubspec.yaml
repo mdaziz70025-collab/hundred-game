@@ -14,6 +14,9 @@ dependencies:
   google_mobile_ads: ^9.0.0
   firebase_core: ^3.0.0
   firebase_database: ^11.0.0
+  firebase_auth: ^5.0.0         # 👈 Added for Login Auth
+  google_sign_in: ^6.2.1       # 👈 Added for Google Login
+  flutter_facebook_auth: ^6.0.2 # 👈 Added for Facebook Login
 
 dev_dependencies:
   flutter_test:
@@ -23,7 +26,7 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: true
-  ios: false # 👈 Ise false kar dein kyunki iOS folder nahi hai
+  ios: false
   image_path: "assets/app_logo.png"
 
 flutter:
