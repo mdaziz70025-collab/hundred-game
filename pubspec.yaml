@@ -18,10 +18,10 @@ dependencies:
 
   # Ads
   google_mobile_ads: ^5.2.0
-  
+
   # Social Logins
   google_sign_in: ^6.1.6
-  flutter_facebook_auth: ^7.2.0
+  flutter_facebook_auth: 7.1.1  # 👈 Fixed version to prevent Pigeon typecast crash
 
   # UI Components
   cupertino_icons: ^1.0.6
