@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       try {
         final AccessToken? accessToken = await FacebookAuth.instance.accessToken;
-        if (accessToken != null && accessToken.expires.isAfter(DateTime.now())) {
+        if (accessToken != null && accessToken.tokenString.isNotEmpty) {
           final OAuthCredential credential = FacebookAuthProvider.credential(accessToken.tokenString);
           UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
