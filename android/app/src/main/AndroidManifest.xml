@@ -6,7 +6,12 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
-        <!-- 👈 Yeh line explicitly v2 embedding declare karti hai -->
+        <!-- 👈 Google AdMob App ID (AdMob crashes stopping tag) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713"/>
+
+        <!-- Flutter v2 embedding -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
