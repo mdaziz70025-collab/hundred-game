@@ -23,6 +23,14 @@
           }
         },
         {
+          "client_id": "603420736879-jdo1107e9t9u9p2lr7h6sp0has9vrgea.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hundred_game",
+            "certificate_hash": "ccfed60601ac34e26dc193de96c1518acd0465a9"
+          }
+        },
+        {
           "client_id": "603420736879-k29n8jiiuikjau852vkcv4rt7476oo11.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
