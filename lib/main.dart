@@ -153,10 +153,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 🔵 FACEBOOK SIGN IN FUNCTION
+  // 🔵 FACEBOOK SIGN IN FUNCTION (Fixed TypeCast Issue)
   Future<void> _signInWithFacebook() async {
     try {
-      final LoginResult result = await FacebookAuth.instance.login();
+      final LoginResult result = await FacebookAuth.instance.login(
+        permissions: ['public_profile', 'email'],
+      );
+
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
         final OAuthCredential credential = FacebookAuthProvider.credential(accessToken.tokenString);
@@ -174,6 +177,26 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     } catch (e) {
+      // Typecast exception handling fallback
+      try {
+        final AccessToken? accessToken = await FacebookAuth.instance.accessToken;
+        if (accessToken != null) {
+          final OAuthCredential credential = FacebookAuthProvider.credential(accessToken.tokenString);
+          UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+          setState(() {
+            _currentUser = userCredential.user;
+            userProfile.name = _currentUser?.displayName ?? "Player 1";
+            _nameController.text = userProfile.name;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Logged in as ${userProfile.name}"), backgroundColor: Colors.green),
+          );
+          return;
+        }
+      } catch (_) {}
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Facebook Sign In Error: $e"), backgroundColor: Colors.red),
       );
