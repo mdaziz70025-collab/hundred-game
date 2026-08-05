@@ -27,7 +27,7 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// Fixed: Applied directly without afterEvaluate
+// 👈 Direct task configuration without afterEvaluate wrapper
 subprojects {
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
         kotlinOptions {
