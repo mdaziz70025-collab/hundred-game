@@ -10,18 +10,36 @@ import 'friend_room_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  await MobileAds.instance.initialize();
+  
+  // Safe Async Initializations to prevent launch crash
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint("Firebase init error: $e");
+  }
 
-  AppOpenAdManager appOpenAdManager = AppOpenAdManager()..loadAd();
+  try {
+    await MobileAds.instance.initialize();
+  } catch (e) {
+    debugPrint("MobileAds init error: $e");
+  }
 
-  runApp(HundredGameApp(appOpenAdManager: appOpenAdManager));
+  runApp(HundredGameApp());
 }
 
-class HundredGameApp extends StatelessWidget {
-  final AppOpenAdManager appOpenAdManager;
+class HundredGameApp extends StatefulWidget {
+  @override
+  _HundredGameAppState createState() => _HundredGameAppState();
+}
 
-  HundredGameApp({required this.appOpenAdManager});
+class _HundredGameAppState extends State<HundredGameApp> {
+  AppOpenAdManager appOpenAdManager = AppOpenAdManager();
+
+  @override
+  void initState() {
+    super.initState();
+    appOpenAdManager.loadAd();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return; // User canceled sign-in
+      if (googleUser == null) return;
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
@@ -141,8 +159,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final LoginResult result = await FacebookAuth.instance.login();
       if (result.status == LoginStatus.success) {
         final AccessToken accessToken = result.accessToken!;
-        
-        // 👈 Fixed for flutter_facebook_auth 7.x: accessToken.tokenString
         final OAuthCredential credential = FacebookAuthProvider.credential(accessToken.tokenString);
 
         UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
