@@ -136,6 +136,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
+      if (!mounted) return;
+
       setState(() {
         _currentUser = userCredential.user;
         userProfile.name = _currentUser?.displayName ?? "Player 1";
@@ -146,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(content: Text("Logged in as ${userProfile.name}"), backgroundColor: Colors.green),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Google Sign In Error: $e"), backgroundColor: Colors.red),
       );
@@ -168,6 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
         UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
+        if (!mounted) return;
+
         setState(() {
           _currentUser = userCredential.user;
           userProfile.name = _currentUser?.displayName ?? "Player 1";
@@ -178,10 +183,12 @@ class _HomeScreenState extends State<HomeScreen> {
           SnackBar(content: Text("Logged in as ${userProfile.name}"), backgroundColor: Colors.green),
         );
       } else if (result.status == LoginStatus.cancelled) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Facebook Login Cancelled"), backgroundColor: Colors.orange),
         );
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Facebook Login Failed: ${result.message}"), backgroundColor: Colors.red),
         );
@@ -189,9 +196,12 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       try {
         final AccessToken? accessToken = await FacebookAuth.instance.accessToken;
-        if (accessToken != null && accessToken.tokenString.isNotEmpty) {
+
+        if (accessToken != null) {
           final OAuthCredential credential = FacebookAuthProvider.credential(accessToken.tokenString);
-          UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+          final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+
+          if (!mounted) return;
 
           setState(() {
             _currentUser = userCredential.user;
@@ -200,14 +210,21 @@ class _HomeScreenState extends State<HomeScreen> {
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Logged in as ${userProfile.name}"), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text("Logged in as ${userProfile.name}"),
+              backgroundColor: Colors.green,
+            ),
           );
           return;
         }
       } catch (_) {}
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Facebook Sign In Error: $e"), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text("Facebook Sign In Error: $e"),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -217,6 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await FirebaseAuth.instance.signOut();
     await GoogleSignIn().signOut();
     await FacebookAuth.instance.logOut();
+    if (!mounted) return;
     setState(() {
       _currentUser = null;
       userProfile.name = "Player 1";
@@ -283,7 +301,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 10),
                     if (_currentUser == null) ...[
                       ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, minimumSize: const Size(double.infinity, 40)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
+                          minimumSize: const Size(double.infinity, 40),
+                        ),
                         icon: const Icon(Icons.g_mobiledata, size: 28, color: Colors.red),
                         label: const Text("Login with Google", style: TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: () {
@@ -293,7 +315,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1877F2), foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 40)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1877F2),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 40),
+                        ),
                         icon: const Icon(Icons.facebook, size: 20),
                         label: const Text("Login with Facebook", style: TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: () {
@@ -303,7 +329,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ] else ...[
                       ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 40)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 40),
+                        ),
                         icon: const Icon(Icons.logout),
                         label: const Text("Sign Out"),
                         onPressed: () {
