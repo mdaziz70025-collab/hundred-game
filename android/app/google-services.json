@@ -13,7 +13,20 @@
           "package_name": "com.example.hundred_game"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "603420736879-jbcgtkrid3d9ng4cje8vgard9tjjdomv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hundred_game",
+            "certificate_hash": "20d224b841b8727126dbbd3e3ecec8e9e314e969"
+          }
+        },
+        {
+          "client_id": "603420736879-74mj432hklrj4gld5on957ulq7q3h1qs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAybeAfNK_Yg-FXrWRdnLwCGNFsFR8xs7Q"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "603420736879-74mj432hklrj4gld5on957ulq7q3h1qs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
