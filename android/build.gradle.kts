@@ -1,4 +1,3 @@
-
 buildscript {
     repositories {
         google()
@@ -28,21 +27,19 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// 👈 Force Java Toolchain 17 across all plugins & subprojects
+// 👈 Direct task configuration without afterEvaluate wrapper
 subprojects {
-    afterEvaluate {
-        if (project.plugins.hasPlugin("com.android.application") || project.plugins.hasPlugin("com.android.library")) {
-            project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.apply {
-                compileOptions.sourceCompatibility = JavaVersion.VERSION_17
-                compileOptions.targetCompatibility = JavaVersion.VERSION_17
+    tasks.matching { it.name.contains("Kotlin") }.configureEach {
+        if (this is org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+            kotlinOptions {
+                jvmTarget = "17"
             }
         }
-        
-        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
-            compilerOptions {
-                jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-            }
-        }
+    }
+    
+    tasks.withType(JavaCompile::class.java).configureEach {
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
     }
 }
 
