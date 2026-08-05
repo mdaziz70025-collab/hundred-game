@@ -27,7 +27,7 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// 👈 Direct task configuration without afterEvaluate wrapper
+// 👈 Force Java & Kotlin 17 on all subproject tasks
 subprojects {
     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
         kotlinOptions {
