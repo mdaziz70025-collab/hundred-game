@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // 👈 Google Sign-In Import
 import 'menu_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // 🔴 Facebook Login Method
   Future<void> signInWithFacebook() async {
     setState(() => isLoading = true);
     try {
@@ -52,6 +54,42 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  // 🟢 Google Passwordless/One-Tap Login Method
+  Future<void> signInWithGoogle() async {
+    setState(() => isLoading = true);
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: '603420736879-74mj432hklrj4gld5on957ulq7q3h1qs.apps.googleusercontent.com',
+      );
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser != null) {
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
+
+        String userName = userCredential.user?.displayName ?? "Google Player";
+        proceedToMenu(userName);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Google Login cancelled")),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Google Login Error: $e")),
       );
     } finally {
       setState(() => isLoading = false);
@@ -90,6 +128,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 40),
 
+                    // Google Login Button
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.g_mobiledata, size: 32, color: Colors.redAccent),
+                      label: const Text("Continue with Google",
+                          style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold)),
+                      onPressed: signInWithGoogle,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Facebook Login Button
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1877F2),
@@ -104,6 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 12),
 
+                    // Mobile Login Button
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade700,
