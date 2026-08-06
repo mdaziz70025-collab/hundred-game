@@ -40,7 +40,8 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ env.PROJECT_DIR }}/android/app/my-release-key.jks
+          mkdir -p ${{ env.PROJECT_DIR }}/android/app
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\r\n' | base64 -d > ${{ env.PROJECT_DIR }}/android/app/my-release-key.jks
 
       - name: Generate Icons and Build Release APK
         run: |
