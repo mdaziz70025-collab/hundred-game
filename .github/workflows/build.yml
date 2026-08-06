@@ -27,7 +27,8 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Locate pubspec.yaml, Generate Icons, and Build
+      - name: Locate pubspec.yaml and Prepare Environment
+        id: prep
         run: |
           PUBSPEC_PATH=$(find . -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
           if [ -z "$PUBSPEC_PATH" ]; then
@@ -35,12 +36,22 @@ jobs:
             exit 1
           fi
           PROJECT_DIR=$(dirname "$PUBSPEC_PATH")
-          echo "Project directory: $PROJECT_DIR"
-          
-          cd "$PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ env.PROJECT_DIR }}/android/app/my-release-key.jks
+
+      - name: Generate Icons and Build Release APK
+        run: |
+          cd ${{ env.PROJECT_DIR }}
           flutter pub get
-          dart run flutter_launcher_icons || true  # 👈 Icons generate honge, error aaye toh bypass ho jayega
-          flutter build apk --release              # 👈 Clean release build without force-upgrade flag
+          dart run flutter_launcher_icons || true
+          flutter build apk --release
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
