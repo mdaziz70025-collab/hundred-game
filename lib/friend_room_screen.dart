@@ -56,7 +56,7 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
         "roomCode": roomCode,
         "hostName": name,
         "players": [name],
-        "targetScore": 100,
+        "targetScore": 500, // <--- Target score yahan 500 kar diya gaya hai
         "status": "waiting",
         "currentDealerIndex": 0,
         "totalRoundsPlayed": 1,
@@ -167,7 +167,7 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
                     builder: (context) => GameScreen(
                       mode: GameMode.friend,
                       totalPlayers: orderedPlayers.length,
-                      targetScore: roomData['targetScore'] ?? 100,
+                      targetScore: roomData['targetScore'] ?? 500, // <--- Fallback target yahan 500 hai
                       playerNames: orderedPlayers,
                       isHost: isHost,
                       roomCode: roomCode,
