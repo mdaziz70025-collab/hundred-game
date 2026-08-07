@@ -120,12 +120,130 @@ class _HomeScreenState extends State<HomeScreen> {
       userProfile.name = _currentUser!.displayName ?? "Player 1";
     }
     _nameController.text = userProfile.name;
+
+    // Check login state on screen startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_currentUser == null) {
+        _showLoginDialog();
+      }
+    });
+  }
+
+  // 👑 LUDO KING STYLE LOGIN DIALOG
+  void _showLoginDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: const Color(0xFF0F172A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Colors.amber, width: 2),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "LOGIN TO CONTINUE",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 1. Facebook Login
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1877F2),
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.facebook, color: Colors.white),
+                  label: const Text(
+                    "Login with Facebook",
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _signInWithFacebook();
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // 2. Google Login
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.g_mobiledata, size: 30, color: Colors.red),
+                  label: const Text(
+                    "Sign in with Google",
+                    style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _signInWithGoogle();
+                  },
+                ),
+
+                const SizedBox(height: 16),
+                Row(
+                  children: const [
+                    Expanded(child: Divider(color: Colors.white30)),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Text("OR", style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+                    ),
+                    Expanded(child: Divider(color: Colors.white30)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // 3. Play as Guest
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text(
+                    "Play as Guest",
+                    style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   // 🔴 GOOGLE SIGN IN FUNCTION
   Future<void> _signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: '603420736879-74mj432hklrj4gld5on957ulq7q3h1qs.apps.googleusercontent.com',
+      );
+
+      // Reset previous session to resolve password loop
+      await googleSignIn.signOut();
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -240,6 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
       userProfile.name = "Player 1";
       _nameController.text = "Player 1";
     });
+    _showLoginDialog();
   }
 
   void _showProfileEditDialog() {
