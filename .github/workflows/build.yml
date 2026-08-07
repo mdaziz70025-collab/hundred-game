@@ -41,7 +41,7 @@ jobs:
       - name: Decode Keystore
         run: |
           mkdir -p ${{ env.PROJECT_DIR }}/android/app
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\r\n' | base64 -d > ${{ env.PROJECT_DIR }}/android/app/my-release-key.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\r\n' | base64 -d > ${{ env.PROJECT_DIR }}/android/app/release.jks
 
       - name: Generate Icons and Build Release APK
         run: |
@@ -50,6 +50,7 @@ jobs:
           dart run flutter_launcher_icons || true
           flutter build apk --release
         env:
+          KEYSTORE_PATH: "release.jks"
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
