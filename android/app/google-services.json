@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "603420736879-08504mdije5lfaka9nvdgvkrl7soi6tm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hundred_game",
+            "certificate_hash": "101aaf6b29c05a803bd834544f8644909b4122e3"
+          }
+        },
+        {
           "client_id": "603420736879-ehuii0t735jvb9ieemj3v00l4oav9n25.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
