@@ -25,16 +25,20 @@ class _MenuScreenState extends State<MenuScreen> {
     super.initState();
     _updateControllers();
 
-    // Menu open hote hi agar user logged in nahi hai toh Ludo King Dialog Popup aayega
+    // Menu khulte hi agar user real logged-in nahi hai (Guest hai), toh Popup show hoga
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (FirebaseAuth.instance.currentUser == null) {
+      bool isNotFirebaseUser = FirebaseAuth.instance.currentUser == null;
+      bool isGuestName = widget.userName.toLowerCase().contains("guest") ||
+          widget.userName == "Mobile User" ||
+          widget.userName == "Player 1";
+
+      if (isNotFirebaseUser || isGuestName) {
         showLoginDialog();
       }
     });
   }
 
   void _updateControllers() {
-    // Current logged-in user ya guest name set karein
     String currentName = FirebaseAuth.instance.currentUser?.displayName ?? widget.userName;
     nameControllers = List.generate(
       selectedPlayers,
@@ -75,12 +79,15 @@ class _MenuScreenState extends State<MenuScreen> {
     }
   }
 
-  // 🟢 Google Login Method
+  // 🟢 Google Login Method (With Auto-Reset to Prevent Password Loop)
   Future<void> signInWithGoogle() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
         serverClientId: '603420736879-74mj432hklrj4gld5on957ulq7q3h1qs.apps.googleusercontent.com',
       );
+
+      // Previous session reset karein taaki login loop/password issue na ho
+      await googleSignIn.signOut();
 
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
