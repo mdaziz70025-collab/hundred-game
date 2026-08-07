@@ -500,6 +500,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         flyingCardValue = null;
         isProcessingTurn = false;
       });
+
+      // --- FIX 1: FRIEND MODE 10-ROUND (BAJI) COMPLETION CHECK ---
+      if (widget.mode == GameMode.friend) {
+        int maxTricks = (widget.totalPlayers == 2) ? 10 : (widget.totalPlayers == 3 ? 6 : 5);
+        
+        // Agar baji ke saare cards (10/6/5 rounds) khele ja chuke hain aur table khali hai
+        if (game.currentRoundCards.isEmpty && (game.totalRoundsPlayed - 1) % maxTricks == 0 && game.totalRoundsPlayed > 1) {
+          bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
+          
+          if (!isTargetHit) {
+            setState(() {
+              game.isDeckFinished = true; // Show "🃏 Baji Khatam!" Overlay
+            });
+            return;
+          }
+        }
+      }
+
       _checkAndPlayNextTurn();
     }
   }
@@ -944,17 +962,28 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 : Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
+                                      // --- FIX 2: PREVENT DOUBLE DECK/DUPLICATE TABLE CARD RENDER ---
                                       Wrap(
                                         spacing: 4,
                                         runSpacing: 4,
                                         alignment: WrapAlignment.center,
                                         children: [
                                           ...List.generate(game.currentRoundCards.length, (index) {
+                                            int cardVal = game.currentRoundCards[index];
+                                            
+                                            // Agar animation chal rahi hai toh center list me duplicate rending rokein
+                                            if (isCardFlying && flyingCardValue == cardVal && index == game.currentRoundCards.length - 1) {
+                                              return const SizedBox.shrink();
+                                            }
+
                                             return Column(
                                               children: [
-                                                _buildPlayingCard(value: game.currentRoundCards[index]),
+                                                _buildPlayingCard(value: cardVal),
                                                 const SizedBox(height: 2),
-                                                Text(game.playedCardOwners[index], style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                                Text(
+                                                  index < game.playedCardOwners.length ? game.playedCardOwners[index] : "",
+                                                  style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                                ),
                                               ],
                                             );
                                           }),
