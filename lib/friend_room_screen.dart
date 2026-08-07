@@ -1,10 +1,15 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'game_models.dart';
 import 'game_screen.dart';
 
 class FriendRoomScreen extends StatefulWidget {
+  final String? userName;
+
+  const FriendRoomScreen({Key? key, this.userName}) : super(key: key);
+
   @override
   _FriendRoomScreenState createState() => _FriendRoomScreenState();
 }
@@ -17,6 +22,15 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
 
   bool isLoading = false;
   String errorMessage = "";
+
+  @override
+  void initState() {
+    super.initState();
+    String currentName = FirebaseAuth.instance.currentUser?.displayName ?? widget.userName ?? "";
+    if (currentName.isNotEmpty) {
+      _nameController.text = currentName;
+    }
+  }
 
   String _generateRoomCode() {
     var rng = Random();
@@ -122,7 +136,7 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
           stream: _dbRef.child("rooms").child(roomCode).onValue,
           builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
             if (!snapshot.hasData || snapshot.data?.snapshot.value == null) {
-              return AlertDialog(
+              return const AlertDialog(
                 backgroundColor: Color(0xFF0F172A),
                 title: Text("Connecting...", style: TextStyle(color: Colors.white)),
                 content: CircularProgressIndicator(color: Colors.amber),
@@ -165,36 +179,36 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
             }
 
             return AlertDialog(
-              backgroundColor: Color(0xFF0F172A),
+              backgroundColor: const Color(0xFF0F172A),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: Column(
                 children: [
-                  Text("🏠 Private Room", style: TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 8),
+                  const Text("🏠 Private Room", style: TextStyle(color: Colors.amber, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(color: Colors.indigo.shade900, borderRadius: BorderRadius.circular(8)),
-                    child: Text("CODE: $roomCode", style: TextStyle(color: Colors.greenAccent, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                    child: Text("CODE: $roomCode", style: const TextStyle(color: Colors.greenAccent, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 2)),
                   ),
                 ],
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("Dost ko yeh Code bataiye:", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                  SizedBox(height: 15),
-                  Text("Joined Players (${players.length}/4):", style: TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 8),
+                  const Text("Dost ko yeh Code bataiye:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 15),
+                  Text("Joined Players (${players.length}/4):", style: const TextStyle(color: Colors.amberAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
                   ...players.map((p) => ListTile(
                         dense: true,
                         leading: Icon(Icons.person, color: p == hostName ? Colors.amber : Colors.white70),
-                        title: Text("$p ${p == hostName ? '(Host)' : ''}", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        title: Text("$p ${p == hostName ? '(Host)' : ''}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       )),
                 ],
               ),
               actions: [
                 TextButton(
-                  child: Text("LEAVE ROOM", style: TextStyle(color: Colors.redAccent)),
+                  child: const Text("LEAVE ROOM", style: TextStyle(color: Colors.redAccent)),
                   onPressed: () {
                     Navigator.pop(context);
                   },
@@ -202,7 +216,7 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
                 if (isHost)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: Text("START GAME", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text("START GAME", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     onPressed: players.length >= 2
                         ? () {
                             _dbRef.child("rooms").child(roomCode).update({"status": "playing"});
@@ -220,94 +234,94 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1B2A47),
+      backgroundColor: const Color(0xFF1B2A47),
       appBar: AppBar(
-        title: Text("Play With Friends"),
-        backgroundColor: Color(0xFF0F172A),
+        title: const Text("Play With Friends"),
+        backgroundColor: const Color(0xFF0F172A),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(height: 20),
-            Icon(Icons.groups, size: 80, color: Colors.amber),
-            SizedBox(height: 10),
-            Text("Friend Mode", textAlign: TextAlign.center, style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
-            Text("Private Room banayein ya apne dosto ke saath join karein", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 13)),
-            SizedBox(height: 30),
+            const SizedBox(height: 20),
+            const Icon(Icons.groups, size: 80, color: Colors.amber),
+            const SizedBox(height: 10),
+            const Text("Friend Mode", textAlign: TextAlign.center, style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
+            const Text("Private Room banayein ya apne dosto ke saath join karein", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 30),
 
             TextField(
               controller: _nameController,
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 labelText: "Apna Naam Likhein",
-                labelStyle: TextStyle(color: Colors.amberAccent),
-                prefixIcon: Icon(Icons.person, color: Colors.amber),
+                labelStyle: const TextStyle(color: Colors.amberAccent),
+                prefixIcon: const Icon(Icons.person, color: Colors.amber),
                 filled: true,
-                fillColor: Color(0xFF0F172A),
+                fillColor: const Color(0xFF0F172A),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             if (isLoading)
-              Center(child: CircularProgressIndicator(color: Colors.amber))
+              const Center(child: CircularProgressIndicator(color: Colors.amber))
             else ...[
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade700,
-                  padding: EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                icon: Icon(Icons.add_box, color: Colors.white),
-                label: Text("CREATE ROOM (HOST)", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                icon: const Icon(Icons.add_box, color: Colors.white),
+                label: const Text("CREATE ROOM (HOST)", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
                 onPressed: _createRoom,
               ),
 
-              SizedBox(height: 25),
+              const SizedBox(height: 25),
               Row(
-                children: [
+                children: const [
                   Expanded(child: Divider(color: Colors.white30)),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                    padding: EdgeInsets.symmetric(horizontal: 10.0),
                     child: Text("OR JOIN EXISTING ROOM", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                   Expanded(child: Divider(color: Colors.white30)),
                 ],
               ),
-              SizedBox(height: 25),
+              const SizedBox(height: 25),
 
               TextField(
                 controller: _roomCodeController,
                 keyboardType: TextInputType.number,
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: "4-Digit Room Code Daalein",
-                  labelStyle: TextStyle(color: Colors.amberAccent),
-                  prefixIcon: Icon(Icons.key, color: Colors.amber),
+                  labelStyle: const TextStyle(color: Colors.amberAccent),
+                  prefixIcon: const Icon(Icons.key, color: Colors.amber),
                   filled: true,
-                  fillColor: Color(0xFF0F172A),
+                  fillColor: const Color(0xFF0F172A),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
 
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.indigo.shade700,
-                  padding: EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                icon: Icon(Icons.login, color: Colors.white),
-                label: Text("JOIN ROOM", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
+                icon: const Icon(Icons.login, color: Colors.white),
+                label: const Text("JOIN ROOM", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
                 onPressed: _joinRoom,
               ),
             ],
 
             if (errorMessage.isNotEmpty) ...[
-              SizedBox(height: 20),
-              Text(errorMessage, style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+              const SizedBox(height: 20),
+              Text(errorMessage, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             ]
           ],
         ),
