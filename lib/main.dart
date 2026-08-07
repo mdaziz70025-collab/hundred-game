@@ -121,7 +121,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     _nameController.text = userProfile.name;
 
-    // Check login state on screen startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_currentUser == null) {
         _showLoginDialog();
@@ -129,7 +128,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // 👑 LUDO KING STYLE LOGIN DIALOG
   void _showLoginDialog() {
     showDialog(
       context: context,
@@ -157,7 +155,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // 1. Facebook Login
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1877F2),
@@ -177,7 +174,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // 2. Google Login
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
@@ -209,7 +205,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 3. Play as Guest
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amber,
@@ -233,14 +228,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 🔴 GOOGLE SIGN IN FUNCTION
   Future<void> _signInWithGoogle() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
         serverClientId: '603420736879-74mj432hklrj4gld5on957ulq7q3h1qs.apps.googleusercontent.com',
       );
 
-      // Reset previous session to resolve password loop
       await googleSignIn.signOut();
 
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
@@ -273,7 +266,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 🔵 FACEBOOK SIGN IN FUNCTION
   Future<void> _signInWithFacebook() async {
     try {
       await FacebookAuth.instance.logOut();
@@ -347,7 +339,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 🚪 SIGN OUT FUNCTION
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();
     await GoogleSignIn().signOut();
@@ -492,7 +483,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (modeType == 'FRIENDS') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => FriendRoomScreen()),
+        MaterialPageRoute(
+          builder: (context) => FriendRoomScreen(userName: userProfile.name), // 👈 User Profile Name Passed
+        ),
       );
       return;
     }
