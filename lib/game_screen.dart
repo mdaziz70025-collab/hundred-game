@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -64,7 +65,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _loadBannerAd();
     _loadInterstitialAd();
 
-    // Check Firebase Logged In User for verified display
     User? user = FirebaseAuth.instance.currentUser;
     List<String> names = List.from(widget.playerNames);
     if (user != null && names.isNotEmpty && widget.mode != GameMode.friend) {
@@ -1035,7 +1035,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   children: [
                     const Text("🃏 Baji Khatam! 🃏", style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 15),
-                    const Text("Target score abhi tak kisi ne hit nahi kiya.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    Text("Target score (${game.targetScore}) abhi tak kisi ne hit nahi kiya.", style: const TextStyle(color: Colors.white70, fontSize: 14)),
                     const SizedBox(height: 25),
                     if (_canCurrentPlayerDeal || widget.isHost)
                       ElevatedButton.icon(
