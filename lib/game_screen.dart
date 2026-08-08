@@ -177,82 +177,97 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             game.targetScore = tScore;
           }
 
-          if (!isCardFlying && !isProcessingTurn) {
-            if (firebaseDealtStatus && roomData['hands'] != null) {
-              Map handsMap = roomData['hands'] as Map;
-              
+          // Unfreeze Processing Lock when table is reset
+          List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
+          if (tableCards.isEmpty) {
+            isProcessingTurn = false;
+            isCardFlying = false;
+          }
+
+          // Sync "Deck Finished" state across all players in room
+          bool isBajiOverInFirebase = roomData['isBajiFinished'] ?? false;
+          if (isBajiOverInFirebase) {
+            if (mounted) {
+              setState(() {
+                game.isDeckFinished = true;
+              });
+            }
+          } else {
+            if (mounted && game.isDeckFinished) {
+              setState(() {
+                game.isDeckFinished = false;
+              });
+            }
+          }
+
+          if (firebaseDealtStatus && roomData['hands'] != null) {
+            Map handsMap = roomData['hands'] as Map;
+            
+            for (int p = 0; p < game.players.length; p++) {
+              String pName = game.players[p].name;
+              var matchingKey = handsMap.keys.firstWhere(
+                (k) => k.toString().trim().toLowerCase() == pName.trim().toLowerCase(),
+                orElse: () => null,
+              );
+
+              if (matchingKey != null) {
+                List<int> pHand = List<int>.from(handsMap[matchingKey] ?? []);
+                game.players[p].hand = pHand;
+              }
+            }
+
+            if (roomData['scores'] != null) {
+              Map scoresMap = roomData['scores'] as Map;
               for (int p = 0; p < game.players.length; p++) {
                 String pName = game.players[p].name;
-                var matchingKey = handsMap.keys.firstWhere(
+                var matchingKey = scoresMap.keys.firstWhere(
                   (k) => k.toString().trim().toLowerCase() == pName.trim().toLowerCase(),
                   orElse: () => null,
                 );
-
                 if (matchingKey != null) {
-                  List<int> pHand = List<int>.from(handsMap[matchingKey] ?? []);
-                  game.players[p].hand = pHand;
-                }
-              }
+                  int sVal = int.tryParse(scoresMap[matchingKey].toString()) ?? 0;
+                  game.players[p].currentScore = sVal;
 
-              if (roomData['scores'] != null) {
-                Map scoresMap = roomData['scores'] as Map;
-                for (int p = 0; p < game.players.length; p++) {
-                  String pName = game.players[p].name;
-                  var matchingKey = scoresMap.keys.firstWhere(
-                    (k) => k.toString().trim().toLowerCase() == pName.trim().toLowerCase(),
-                    orElse: () => null,
-                  );
-                  if (matchingKey != null) {
-                    int sVal = int.tryParse(scoresMap[matchingKey].toString()) ?? 0;
-                    game.players[p].currentScore = sVal;
-
-                    if (sVal >= game.targetScore && game.winnerName.isEmpty) {
-                      game.winnerName = pName;
-                    }
+                  if (sVal >= game.targetScore && game.winnerName.isEmpty) {
+                    game.winnerName = pName;
                   }
                 }
               }
+            }
 
-              if (roomData['wins'] != null) {
-                Map winsMap = roomData['wins'] as Map;
-                winsMap.forEach((key, value) {
-                  game.playerWinsMap[key.toString()] = int.tryParse(value.toString()) ?? 0;
-                });
-              }
+            if (roomData['wins'] != null) {
+              Map winsMap = roomData['wins'] as Map;
+              winsMap.forEach((key, value) {
+                game.playerWinsMap[key.toString()] = int.tryParse(value.toString()) ?? 0;
+              });
+            }
 
-              if (roomData['totalRoundsPlayed'] != null) {
-                game.totalRoundsPlayed = int.tryParse(roomData['totalRoundsPlayed'].toString()) ?? 0;
-              }
+            if (roomData['totalRoundsPlayed'] != null) {
+              game.totalRoundsPlayed = int.tryParse(roomData['totalRoundsPlayed'].toString()) ?? 0;
+            }
 
-              if (roomData['tableCards'] != null) {
-                List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
-                List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
-                game.currentRoundCards = tableCards;
-                game.playedCardOwners = tableOwners;
-              } else {
-                game.currentRoundCards = [];
-                game.playedCardOwners = [];
-              }
+            List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
+            game.currentRoundCards = tableCards;
+            game.playedCardOwners = tableOwners;
 
-              if (roomData['currentTurnPlayer'] != null) {
-                String activeTurnName = roomData['currentTurnPlayer'].toString().trim().toLowerCase();
-                int foundIndex = game.players.indexWhere((p) => p.name.trim().toLowerCase() == activeTurnName);
-                if (foundIndex != -1) {
-                  game.currentPlayerIndex = foundIndex;
-                }
+            if (roomData['currentTurnPlayer'] != null) {
+              String activeTurnName = roomData['currentTurnPlayer'].toString().trim().toLowerCase();
+              int foundIndex = game.players.indexWhere((p) => p.name.trim().toLowerCase() == activeTurnName);
+              if (foundIndex != -1) {
+                game.currentPlayerIndex = foundIndex;
               }
+            }
 
-              if (mounted) {
-                setState(() {
-                  cardsDealt = true;
-                });
-              }
-            } else if (!firebaseDealtStatus) {
-              if (mounted) {
-                setState(() {
-                  cardsDealt = false;
-                });
-              }
+            if (mounted) {
+              setState(() {
+                cardsDealt = true;
+              });
+            }
+          } else if (!firebaseDealtStatus) {
+            if (mounted) {
+              setState(() {
+                cardsDealt = false;
+              });
             }
           }
         }
@@ -331,6 +346,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "cardsDealt": true,
+        "isBajiFinished": false,
         "targetScore": widget.targetScore,
         "hands": handsSyncMap,
         "scores": scoresSyncMap,
@@ -501,17 +517,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         isProcessingTurn = false;
       });
 
-      // --- FIX 1: FRIEND MODE 10-ROUND (BAJI) COMPLETION CHECK ---
+      // --- FRIEND MODE 10 ROUND / DEAL COMPLETION OVERLAY CHECK ---
       if (widget.mode == GameMode.friend) {
-        int maxTricks = (widget.totalPlayers == 2) ? 10 : (widget.totalPlayers == 3 ? 6 : 5);
+        bool allHandsEmpty = game.players.every((p) => p.hand.isEmpty);
         
-        // Agar baji ke saare cards (10/6/5 rounds) khele ja chuke hain aur table khali hai
-        if (game.currentRoundCards.isEmpty && (game.totalRoundsPlayed - 1) % maxTricks == 0 && game.totalRoundsPlayed > 1) {
+        if (allHandsEmpty && game.currentRoundCards.isEmpty) {
           bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
           
           if (!isTargetHit) {
             setState(() {
-              game.isDeckFinished = true; // Show "🃏 Baji Khatam!" Overlay
+              game.isDeckFinished = true;
+            });
+
+            // Synchronize "isBajiFinished" flag to Firebase
+            await _dbRef.child("rooms").child(widget.roomCode).update({
+              "isBajiFinished": true,
+              "cardsDealt": false,
             });
             return;
           }
@@ -962,7 +983,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 : Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      // --- FIX 2: PREVENT DOUBLE DECK/DUPLICATE TABLE CARD RENDER ---
                                       Wrap(
                                         spacing: 4,
                                         runSpacing: 4,
@@ -971,7 +991,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                           ...List.generate(game.currentRoundCards.length, (index) {
                                             int cardVal = game.currentRoundCards[index];
                                             
-                                            // Agar animation chal rahi hai toh center list me duplicate rending rokein
                                             if (isCardFlying && flyingCardValue == cardVal && index == game.currentRoundCards.length - 1) {
                                               return const SizedBox.shrink();
                                             }
@@ -1090,6 +1109,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                             await _dbRef.child("rooms").child(widget.roomCode).update({
                               "currentDealerIndex": nextDealer,
                               "cardsDealt": false,
+                              "isBajiFinished": false,
                               "tableCards": [],
                               "tableOwners": [],
                             });
