@@ -162,6 +162,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         List<String> roomPlayers = List<String>.from(roomData['players'] ?? []);
         int currentDealerIdx = roomData['currentDealerIndex'] ?? 0;
         bool firebaseDealtStatus = roomData['cardsDealt'] ?? false;
+        bool isBajiFinishedInFb = roomData['isBajiFinished'] ?? false;
 
         if (roomPlayers.isNotEmpty) {
           String dealer = roomPlayers[currentDealerIdx % roomPlayers.length];
@@ -177,27 +178,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             game.targetScore = tScore;
           }
 
-          // Unfreeze Processing Lock when table is reset
           List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
           if (tableCards.isEmpty) {
             isProcessingTurn = false;
             isCardFlying = false;
-          }
-
-          // Sync "Deck Finished" state across all players in room
-          bool isBajiOverInFirebase = roomData['isBajiFinished'] ?? false;
-          if (isBajiOverInFirebase) {
-            if (mounted) {
-              setState(() {
-                game.isDeckFinished = true;
-              });
-            }
-          } else {
-            if (mounted && game.isDeckFinished) {
-              setState(() {
-                game.isDeckFinished = false;
-              });
-            }
           }
 
           if (firebaseDealtStatus && roomData['hands'] != null) {
@@ -258,15 +242,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               }
             }
 
+            // Sync Deck Finished status on all connected devices
+            bool allHandsEmpty = game.players.isNotEmpty && game.players.every((p) => p.hand.isEmpty);
+            if ((allHandsEmpty && tableCards.isEmpty) || isBajiFinishedInFb) {
+              bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
+              if (!isTargetHit && mounted) {
+                setState(() {
+                  game.isDeckFinished = true;
+                });
+              }
+            }
+
             if (mounted) {
               setState(() {
                 cardsDealt = true;
               });
             }
           } else if (!firebaseDealtStatus) {
+            bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
             if (mounted) {
               setState(() {
                 cardsDealt = false;
+                if (!isTargetHit) {
+                  game.isDeckFinished = true; // Show Baji Khatam overlay
+                }
               });
             }
           }
@@ -498,6 +497,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
       String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
 
+      bool allHandsEmpty = game.players.every((p) => p.hand.isEmpty);
+      bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
+
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "hands": handsSyncMap,
         "scores": scoresSyncMap,
@@ -507,6 +509,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         "tableCards": List<int>.from(game.currentRoundCards),
         "tableOwners": List<String>.from(game.playedCardOwners),
         "currentTurnPlayer": nextTurnPlayerName,
+        "isBajiFinished": (allHandsEmpty && !isTargetHit),
+        if (allHandsEmpty && !isTargetHit) "cardsDealt": false,
       });
     }
 
@@ -517,22 +521,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         isProcessingTurn = false;
       });
 
-      // --- FRIEND MODE 10 ROUND / DEAL COMPLETION OVERLAY CHECK ---
       if (widget.mode == GameMode.friend) {
         bool allHandsEmpty = game.players.every((p) => p.hand.isEmpty);
-        
         if (allHandsEmpty && game.currentRoundCards.isEmpty) {
           bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
-          
           if (!isTargetHit) {
             setState(() {
               game.isDeckFinished = true;
-            });
-
-            // Synchronize "isBajiFinished" flag to Firebase
-            await _dbRef.child("rooms").child(widget.roomCode).update({
-              "isBajiFinished": true,
-              "cardsDealt": false,
             });
             return;
           }
