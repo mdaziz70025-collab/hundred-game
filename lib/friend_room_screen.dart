@@ -35,20 +35,19 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
       if (FirebaseAuth.instance.currentUser == null) {
         await FirebaseAuth.instance.signInAnonymously().timeout(
           const Duration(seconds: 5),
-          onTimeout: () {
-            debugPrint("Anonymous Auth Timeout");
-            return FirebaseAuth.instance.currentUser?.auth.currentUser;
-          },
         );
       }
+    } catch (e) {
+      debugPrint("Auth init error/timeout: $e");
+    }
+
+    if (mounted) {
       String currentName = FirebaseAuth.instance.currentUser?.displayName ?? widget.userName ?? "";
-      if (currentName.isNotEmpty && _nameController.text.isEmpty && mounted) {
+      if (currentName.isNotEmpty && _nameController.text.isEmpty) {
         setState(() {
           _nameController.text = currentName;
         });
       }
-    } catch (e) {
-      debugPrint("Auth init error: $e");
     }
   }
 
@@ -72,7 +71,6 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
     String roomCode = _generateRoomCode();
 
     try {
-      // Ensure user is signed in before writing to DB
       if (FirebaseAuth.instance.currentUser == null) {
         await FirebaseAuth.instance.signInAnonymously().timeout(
           const Duration(seconds: 5),
@@ -123,7 +121,6 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
     });
 
     try {
-      // Ensure user is signed in before reading DB
       if (FirebaseAuth.instance.currentUser == null) {
         await FirebaseAuth.instance.signInAnonymously().timeout(
           const Duration(seconds: 5),
