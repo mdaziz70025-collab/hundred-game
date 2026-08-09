@@ -32,9 +32,12 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
 
   Future<void> _ensureAuthAndSetup() async {
     try {
+      // Force database to go online
+      FirebaseDatabase.instance.goOnline();
+
       if (FirebaseAuth.instance.currentUser == null) {
         await FirebaseAuth.instance.signInAnonymously().timeout(
-          const Duration(seconds: 5),
+          const Duration(seconds: 10),
         );
       }
     } catch (e) {
@@ -71,9 +74,11 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
     String roomCode = _generateRoomCode();
 
     try {
+      FirebaseDatabase.instance.goOnline();
+
       if (FirebaseAuth.instance.currentUser == null) {
         await FirebaseAuth.instance.signInAnonymously().timeout(
-          const Duration(seconds: 5),
+          const Duration(seconds: 10),
         );
       }
 
@@ -87,9 +92,9 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
         "totalRoundsPlayed": 1,
         "createdAt": ServerValue.timestamp,
       }).timeout(
-        const Duration(seconds: 6),
+        const Duration(seconds: 15),
         onTimeout: () {
-          throw TimeoutException("Firebase Database connection slow hai ya timeout ho gaya.");
+          throw TimeoutException("Server se connect nahi ho paya. Internet check karein.");
         },
       );
 
@@ -121,21 +126,23 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
     });
 
     try {
+      FirebaseDatabase.instance.goOnline();
+
       if (FirebaseAuth.instance.currentUser == null) {
         await FirebaseAuth.instance.signInAnonymously().timeout(
-          const Duration(seconds: 5),
+          const Duration(seconds: 10),
         );
       }
 
       DataSnapshot snapshot = await _dbRef.child("rooms").child(code).get().timeout(
-        const Duration(seconds: 6),
+        const Duration(seconds: 15),
         onTimeout: () {
-          throw TimeoutException("Room search karne mein timeout ho gaya.");
+          throw TimeoutException("Database response nahi de raha. Dobara try karein.");
         },
       );
 
-      if (snapshot.exists) {
-        Map<dynamic, dynamic> roomData = snapshot.value as Map<dynamic, dynamic>;
+      if (snapshot.exists && snapshot.value != null) {
+        Map<dynamic, dynamic> roomData = Map<dynamic, dynamic>.from(snapshot.value as Map);
         List<dynamic> players = List.from(roomData['players'] ?? []);
 
         if (players.length >= 4) {
@@ -158,7 +165,7 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
       } else {
         setState(() {
           isLoading = false;
-          errorMessage = "Sahi Room Code daalein! Yeh room nahi mila.";
+          errorMessage = "Sahi Room Code daalein! Room #$code nahi mila.";
         });
       }
     } catch (e) {
@@ -189,7 +196,7 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
               );
             }
 
-            Map<dynamic, dynamic> roomData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+            Map<dynamic, dynamic> roomData = Map<dynamic, dynamic>.from(snapshot.data!.snapshot.value as Map);
             List<String> players = List<String>.from(roomData['players'] ?? []);
             String status = roomData['status'] ?? "waiting";
             String hostName = roomData['hostName'] ?? "";
