@@ -242,13 +242,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               }
             }
 
-            // Sync Deck Finished status on all connected devices
+            bool hasPlayedAtLeastOneRound = game.totalRoundsPlayed > 0;
             bool allHandsEmpty = game.players.isNotEmpty && game.players.every((p) => p.hand.isEmpty);
-            if ((allHandsEmpty && tableCards.isEmpty) || isBajiFinishedInFb) {
+            
+            if (hasPlayedAtLeastOneRound && ((allHandsEmpty && tableCards.isEmpty) || isBajiFinishedInFb)) {
               bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
               if (!isTargetHit && mounted) {
                 setState(() {
                   game.isDeckFinished = true;
+                });
+              }
+            } else {
+              if (mounted) {
+                setState(() {
+                  game.isDeckFinished = false;
                 });
               }
             }
@@ -260,11 +267,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             }
           } else if (!firebaseDealtStatus) {
             bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
+            bool hasPlayedAtLeastOneRound = game.totalRoundsPlayed > 0;
+
             if (mounted) {
               setState(() {
                 cardsDealt = false;
-                if (!isTargetHit) {
-                  game.isDeckFinished = true; // Show Baji Khatam overlay
+                if (!isTargetHit && hasPlayedAtLeastOneRound) {
+                  game.isDeckFinished = true;
+                } else {
+                  game.isDeckFinished = false;
                 }
               });
             }
@@ -329,6 +340,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       isDealing = true;
       cardsDealt = false;
       currentDealingCardIndex = 0;
+      game.isDeckFinished = false;
     });
 
     game.dealNewDeck();
@@ -457,14 +469,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         setState(() => game.warningMsg = "Pehle 5 number card hi chalna hoga!");
         return;
       }
-      if (widget.totalPlayers == 3 && current.hand.contains(15) && cardValue != 15) {
+      if (widget.totalPlayers == 3 && cardValue != 15 && current.hand.contains(15)) {
         setState(() => game.warningMsg = "Pehle 15 number card hi chalna hoga!");
         return;
       }
     }
 
     if (game.currentRoundCards.isNotEmpty) {
-      int highestOnTable = game.currentRoundCards.reduce((a, b) => a > b ? a : b);
+      int highestOnTable = game.currentRoundCards.reduce(max);
       bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
       if (hasHigherCard && cardValue < highestOnTable) {
         setState(() => game.warningMsg = "Aapke paas $highestOnTable se bada card hai, chhota nahi chal sakte!");
@@ -481,11 +493,37 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       game.warningMsg = "";
     });
 
-    await Future.delayed(const Duration(milliseconds: 50));
+    await Future.delayed(const Duration(milliseconds: 150));
 
     if (!mounted) return;
 
+    bool isLastCardOfTrick = (game.currentRoundCards.length == widget.totalPlayers - 1);
+
     game.playCard(cardValue);
+
+    // If last card of trick, wait 1 second so all players see full table cards
+    if (isLastCardOfTrick) {
+      if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
+        Map<String, List<int>> handsSyncMap = {};
+        Map<String, int> scoresSyncMap = {};
+        for (var player in game.players) {
+          handsSyncMap[player.name] = player.hand;
+          scoresSyncMap[player.name] = player.currentScore;
+        }
+
+        await _dbRef.child("rooms").child(widget.roomCode).update({
+          "hands": handsSyncMap,
+          "scores": scoresSyncMap,
+          "wins": game.playerWinsMap,
+          "targetScore": widget.targetScore,
+          "totalRoundsPlayed": game.totalRoundsPlayed,
+          "tableCards": List<int>.from(game.currentRoundCards),
+          "tableOwners": List<String>.from(game.playedCardOwners),
+        });
+      }
+
+      await Future.delayed(const Duration(milliseconds: 1000));
+    }
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
@@ -496,7 +534,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
 
       String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
-
       bool allHandsEmpty = game.players.every((p) => p.hand.isEmpty);
       bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
 
@@ -601,15 +638,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
+  // --- FLOWER SUITS REPLACEMENT ---
   String _getCardSuit(int value) {
-    if (value >= 80) return "♥️";
-    if (value >= 50) return "♠️";
-    if (value >= 30) return "♦️";
-    return "♣️";
+    if (value >= 80) return "🌹"; // Rose
+    if (value >= 50) return "🌻"; // Sunflower
+    if (value >= 30) return "🌺"; // Hibiscus
+    return "🌸";                 // Cherry Blossom
   }
 
   Color _getSuitColor(String suit) {
-    return (suit == "♥️" || suit == "♦️") ? Colors.red.shade700 : Colors.black;
+    return Colors.black; // Native colors for flower emojis
   }
 
   Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
@@ -649,7 +687,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 child: Text("$value", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: suitColor)),
               ),
             ),
-            Text(suit, style: TextStyle(fontSize: 16, color: suitColor)),
+            Text(suit, style: const TextStyle(fontSize: 16)),
             Align(
               alignment: Alignment.bottomRight,
               child: Padding(
@@ -663,17 +701,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
+  // --- FLOWER BACK CARD REPLACEMENT ---
   Widget _buildHiddenCard({bool isVertical = false}) {
     return Container(
       width: isVertical ? 22 : 30,
       height: isVertical ? 34 : 22,
       margin: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: Colors.indigo.shade900,
+        color: Colors.pink.shade900,
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: Colors.white70, width: 1),
       ),
-      child: const Center(child: Text("🎴", style: TextStyle(fontSize: 8))),
+      child: const Center(child: Text("🌸", style: TextStyle(fontSize: 10))),
     );
   }
 
@@ -702,7 +741,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (isDealer) ...[
-                const Text("🎴 ", style: TextStyle(fontSize: 10)),
+                const Text("🌸 ", style: TextStyle(fontSize: 10)),
               ],
               Text(
                 "${player.name} : ${player.currentScore} pts",
@@ -965,11 +1004,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                         width: 38,
                                         height: 54,
                                         decoration: BoxDecoration(
-                                          color: Colors.indigo.shade900,
+                                          color: Colors.pink.shade900,
                                           borderRadius: BorderRadius.circular(6),
                                           border: Border.all(color: Colors.amber, width: 2),
                                         ),
-                                        child: const Center(child: Text("🎴", style: TextStyle(fontSize: 16))),
+                                        child: const Center(child: Text("🌸", style: TextStyle(fontSize: 16))),
                                       ),
                                       const SizedBox(height: 6),
                                       Text("Card #$currentDealingCardIndex", style: const TextStyle(color: Colors.white70, fontSize: 11)),
