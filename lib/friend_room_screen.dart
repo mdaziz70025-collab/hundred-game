@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -26,9 +27,28 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
   @override
   void initState() {
     super.initState();
-    String currentName = FirebaseAuth.instance.currentUser?.displayName ?? widget.userName ?? "";
-    if (currentName.isNotEmpty) {
-      _nameController.text = currentName;
+    _ensureAuthAndSetup();
+  }
+
+  Future<void> _ensureAuthAndSetup() async {
+    try {
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            debugPrint("Anonymous Auth Timeout");
+            return FirebaseAuth.instance.currentUser?.auth.currentUser;
+          },
+        );
+      }
+      String currentName = FirebaseAuth.instance.currentUser?.displayName ?? widget.userName ?? "";
+      if (currentName.isNotEmpty && _nameController.text.isEmpty && mounted) {
+        setState(() {
+          _nameController.text = currentName;
+        });
+      }
+    } catch (e) {
+      debugPrint("Auth init error: $e");
     }
   }
 
@@ -52,22 +72,35 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
     String roomCode = _generateRoomCode();
 
     try {
+      // Ensure user is signed in before writing to DB
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously().timeout(
+          const Duration(seconds: 5),
+        );
+      }
+
       await _dbRef.child("rooms").child(roomCode).set({
         "roomCode": roomCode,
         "hostName": name,
         "players": [name],
-        "targetScore": 500, // <--- Target score yahan 500 kar diya gaya hai
+        "targetScore": 500,
         "status": "waiting",
         "currentDealerIndex": 0,
         "totalRoundsPlayed": 1,
         "createdAt": ServerValue.timestamp,
-      });
+      }).timeout(
+        const Duration(seconds: 6),
+        onTimeout: () {
+          throw TimeoutException("Firebase Database connection slow hai ya timeout ho gaya.");
+        },
+      );
 
       if (!mounted) return;
       setState(() => isLoading = false);
 
       _showWaitingDialog(roomCode, name, isHost: true);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         isLoading = false;
         errorMessage = "Error creating room: $e";
@@ -90,7 +123,19 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
     });
 
     try {
-      DataSnapshot snapshot = await _dbRef.child("rooms").child(code).get();
+      // Ensure user is signed in before reading DB
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously().timeout(
+          const Duration(seconds: 5),
+        );
+      }
+
+      DataSnapshot snapshot = await _dbRef.child("rooms").child(code).get().timeout(
+        const Duration(seconds: 6),
+        onTimeout: () {
+          throw TimeoutException("Room search karne mein timeout ho gaya.");
+        },
+      );
 
       if (snapshot.exists) {
         Map<dynamic, dynamic> roomData = snapshot.value as Map<dynamic, dynamic>;
@@ -120,6 +165,7 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         isLoading = false;
         errorMessage = "Error joining room: $e";
@@ -139,7 +185,10 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
               return const AlertDialog(
                 backgroundColor: Color(0xFF0F172A),
                 title: Text("Connecting...", style: TextStyle(color: Colors.white)),
-                content: CircularProgressIndicator(color: Colors.amber),
+                content: SizedBox(
+                  height: 60,
+                  child: Center(child: CircularProgressIndicator(color: Colors.amber)),
+                ),
               );
             }
 
@@ -167,7 +216,7 @@ class _FriendRoomScreenState extends State<FriendRoomScreen> {
                     builder: (context) => GameScreen(
                       mode: GameMode.friend,
                       totalPlayers: orderedPlayers.length,
-                      targetScore: roomData['targetScore'] ?? 500, // <--- Fallback target yahan 500 hai
+                      targetScore: roomData['targetScore'] ?? 500,
                       playerNames: orderedPlayers,
                       isHost: isHost,
                       roomCode: roomCode,
