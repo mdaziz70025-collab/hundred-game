@@ -109,7 +109,7 @@ class HundredGameLogic {
     }
 
     currentPlayerIndex = startingIndex;
-    firstTurnNotice = "${players[startingIndex].name} ke paas$lowestCard number card gaya hai! Pehla turn inka hai.";
+    firstTurnNotice = "${players[startingIndex].name} ke paas $lowestCard number card gaya hai! Pehla turn inka hai.";
   }
 
   void revealFirstTurnDialog() {
@@ -208,12 +208,11 @@ class HundredGameLogic {
     int maxTricksInDeck = (totalPlayers == 2) ? 10 : (totalPlayers == 3 ? 6 : 5);
     bool allHandsEmpty = players.every((p) => p.hand.isEmpty);
 
-    // FIX: Max rounds / All hands empty hone par STRICTLY Baji Finish Screen trigger karein
     if (currentTrickInDeck >= maxTricksInDeck || allHandsEmpty) {
       if (winnerName.isNotEmpty) {
-        isDeckFinished = false; // Game Winner screen aayegi
+        isDeckFinished = false; // Match winner screen aayegi
       } else {
-        isDeckFinished = true;  // Agli Baji Deal Karein Overlay Screen Aayegi
+        isDeckFinished = true;  // Agli Baji Deal Overlay Screen Aayegi
       }
     } else if (mode == GameMode.offline) {
       isCardHiddenForPass = true;
