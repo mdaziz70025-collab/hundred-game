@@ -541,7 +541,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
 
     if (isLastCardOfTrick) {
-      // 1.3 Seconds delay to ensure all players see cards rendered on table
       await Future.delayed(const Duration(milliseconds: 1300));
 
       game.evaluateRoundWinner();
