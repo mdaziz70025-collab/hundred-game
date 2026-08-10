@@ -165,6 +165,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         bool isBajiFinishedInFb = roomData['isBajiFinished'] ?? false;
 
         if (roomPlayers.isNotEmpty) {
+          if (game.players.length != roomPlayers.length) {
+            game.players = roomPlayers.map((name) => Player(id: name, name: name, hand: [])).toList();
+          }
+
           String dealer = roomPlayers[currentDealerIdx % roomPlayers.length];
           
           if (mounted) {
@@ -179,6 +183,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           }
 
           List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
+          List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
+
           if (tableCards.isEmpty) {
             isProcessingTurn = false;
             isCardFlying = false;
@@ -230,7 +236,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               game.totalRoundsPlayed = int.tryParse(roomData['totalRoundsPlayed'].toString()) ?? 0;
             }
 
-            List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
             game.currentRoundCards = tableCards;
             game.playedCardOwners = tableOwners;
 
@@ -330,8 +335,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   bool get _isMyTurn {
     if (widget.mode != GameMode.friend) return true;
-    Player current = game.players[game.currentPlayerIndex];
-    return current.name.trim().toLowerCase() == widget.myPlayerName.trim().toLowerCase();
+    if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return false;
+    
+    String activeTurnPlayer = game.players[game.currentPlayerIndex].name.trim().toLowerCase();
+    String myDevicePlayer = widget.myPlayerName.trim().toLowerCase();
+    
+    return activeTurnPlayer == myDevicePlayer;
   }
 
   void _startDealingAnimation() async {
@@ -496,13 +505,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     await Future.delayed(const Duration(milliseconds: 150));
     if (!mounted) return;
 
-    // 1. Play card locally
-    game.playCard(cardValue);
+    current.hand.remove(cardValue);
+    game.currentRoundCards.add(cardValue);
+    game.playedCardOwners.add(current.name);
 
-    // FIX: Trick complete tab hota hai jab table par saare players (totalPlayers) ke cards aa jaate hain
     bool isLastCardOfTrick = (game.currentRoundCards.length == widget.totalPlayers);
 
-    // 2. Teen Patti Architecture: Push ALL cards to Firebase FIRST
+    int nextTurnIdx = (game.currentPlayerIndex + 1) % game.players.length;
+    String nextTurnPlayerName = game.players[nextTurnIdx].name;
+
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
       Map<String, int> scoresSyncMap = {};
@@ -515,6 +526,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         "hands": handsSyncMap,
         "tableCards": List<int>.from(game.currentRoundCards),
         "tableOwners": List<String>.from(game.playedCardOwners),
+        if (!isLastCardOfTrick) "currentTurnPlayer": nextTurnPlayerName,
       });
     }
 
@@ -525,12 +537,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       });
     }
 
-    // 3. Handle Trick Completion / Delay Logic
     if (isLastCardOfTrick) {
-      // 1.3 seconds delay for everyone to view table cards
       await Future.delayed(const Duration(milliseconds: 1300));
 
-      // Evaluate winner and clear table locally
       game.evaluateRoundWinner();
 
       if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
@@ -541,7 +550,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           scoresSyncMap[player.name] = player.currentScore;
         }
 
-        String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
+        String trickWinnerPlayerName = game.players[game.currentPlayerIndex].name;
         bool allHandsEmpty = game.players.every((p) => p.hand.isEmpty);
         bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
 
@@ -551,20 +560,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           "wins": game.playerWinsMap,
           "targetScore": widget.targetScore,
           "totalRoundsPlayed": game.totalRoundsPlayed,
-          "tableCards": [], // Clear Table on Firebase after delay
+          "tableCards": [], 
           "tableOwners": [],
-          "currentTurnPlayer": nextTurnPlayerName,
+          "currentTurnPlayer": trickWinnerPlayerName,
           "isBajiFinished": (allHandsEmpty && !isTargetHit),
           if (allHandsEmpty && !isTargetHit) "cardsDealt": false,
-        });
-      }
-    } else {
-      // Normal Middle Turns Sync
-      if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
-        String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
-
-        await _dbRef.child("rooms").child(widget.roomCode).update({
-          "currentTurnPlayer": nextTurnPlayerName,
         });
       }
     }
@@ -654,7 +654,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  // --- FLOWER SUITS REPLACEMENT ---
   String _getCardSuit(int value) {
     if (value >= 80) return "🌹"; // Rose
     if (value >= 50) return "🌻"; // Sunflower
@@ -663,7 +662,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Color _getSuitColor(String suit) {
-    return Colors.black; // Native colors for flower emojis
+    return Colors.black; 
   }
 
   Widget _buildPlayingCard({required int value, VoidCallback? onTap}) {
@@ -717,7 +716,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  // --- FLOWER BACK CARD REPLACEMENT ---
   Widget _buildHiddenCard({bool isVertical = false}) {
     return Container(
       width: isVertical ? 22 : 30,
@@ -800,9 +798,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         : (realIndex == 0);
 
     List<int> displayHand = List.from(p.hand);
-    if (isCardFlying && flyingCardValue != null && isCurrentTurn) {
-      displayHand.remove(flyingCardValue);
-    }
 
     if (widget.mode == GameMode.friend) {
       if (isMyDevicePlayer) {
@@ -1040,11 +1035,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                         children: [
                                           ...List.generate(game.currentRoundCards.length, (index) {
                                             int cardVal = game.currentRoundCards[index];
-                                            
-                                            if (isCardFlying && flyingCardValue == cardVal && index == game.currentRoundCards.length - 1) {
-                                              return const SizedBox.shrink();
-                                            }
-
                                             return Column(
                                               children: [
                                                 _buildPlayingCard(value: cardVal),
@@ -1056,12 +1046,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                               ],
                                             );
                                           }),
-                                          if (isCardFlying && flyingCardValue != null)
-                                            AnimatedScale(
-                                              scale: 1.1,
-                                              duration: const Duration(milliseconds: 300),
-                                              child: _buildPlayingCard(value: flyingCardValue!),
-                                            ),
                                         ],
                                       ),
                                     ],
