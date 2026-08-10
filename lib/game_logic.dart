@@ -24,7 +24,7 @@ class HundredGameLogic {
   int currentPlayerIndex = 0;
 
   int totalRoundsPlayed = 0;
-  int currentTrickInDeck = 0;
+  int currentTrickInDeck = 0; // Tracks tricks played only in the active baji/deck
   Map<String, int> playerWinsMap = {};
   List<RoundHistory> roundHistoryList = [];
 
@@ -66,7 +66,7 @@ class HundredGameLogic {
     isDeckFinished = false;
     isFirstRound = true;
     showFirstTurnDialog = false;
-    currentTrickInDeck = 0;
+    currentTrickInDeck = 0; // Reset deck counter
     currentRoundCards.clear();
     playedCardOwners.clear();
 
@@ -109,7 +109,7 @@ class HundredGameLogic {
     }
 
     currentPlayerIndex = startingIndex;
-    firstTurnNotice = "${players[startingIndex].name} ke paas $lowestCard number card gaya hai! Pehla turn inka hai.";
+    firstTurnNotice = "${players[startingIndex].name} ke paas$lowestCard number card gaya hai! Pehla turn inka hai.";
   }
 
   void revealFirstTurnDialog() {
@@ -128,7 +128,7 @@ class HundredGameLogic {
         warningMsg = "Pehle 5 number card hi chalna hoga!";
         return;
       }
-      if (totalPlayers == 3 && current.hand.contains(15) && cardValue != 15) {
+      if (totalPlayers == 3 && cardValue != 15 && current.hand.contains(15)) {
         warningMsg = "Pehle 15 number card hi chalna hoga!";
         return;
       }
@@ -205,14 +205,18 @@ class HundredGameLogic {
     currentRoundCards.clear();
     playedCardOwners.clear();
 
+    // STRICT RULES ACCORDING TO PLAYER COUNT:
+    // 2 Players -> 10 tricks
+    // 3 Players -> 6 tricks
+    // 4 Players -> 5 tricks
     int maxTricksInDeck = (totalPlayers == 2) ? 10 : (totalPlayers == 3 ? 6 : 5);
     bool allHandsEmpty = players.every((p) => p.hand.isEmpty);
 
     if (currentTrickInDeck >= maxTricksInDeck || allHandsEmpty) {
       if (winnerName.isNotEmpty) {
-        isDeckFinished = false;
+        isDeckFinished = false; // Trigger Game Winner Screen
       } else {
-        isDeckFinished = true;
+        isDeckFinished = true;  // Trigger Agli Baji Deal Screen
       }
     } else if (mode == GameMode.offline) {
       isCardHiddenForPass = true;
