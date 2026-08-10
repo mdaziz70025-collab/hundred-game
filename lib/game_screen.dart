@@ -186,7 +186,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
           List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
 
-          if (tableCards.isEmpty && mounted) {
+          if (mounted) {
             setState(() {
               isProcessingTurn = false;
               isCardFlying = false;
@@ -250,11 +250,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               }
             }
 
-            bool hasPlayedAtLeastOneRound = game.totalRoundsPlayed > 0;
-            bool allHandsEmpty = game.players.isNotEmpty && game.players.every((p) => p.hand.isEmpty);
+            bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
             
-            if (hasPlayedAtLeastOneRound && ((allHandsEmpty && tableCards.isEmpty) || isBajiFinishedInFb)) {
-              bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
+            if (isBajiFinishedInFb || game.isDeckFinished) {
               if (!isTargetHit && mounted) {
                 setState(() {
                   game.isDeckFinished = true;
@@ -514,7 +512,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     game.currentRoundCards.add(cardValue);
     game.playedCardOwners.add(current.name);
 
-    bool isLastCardOfTrick = (game.currentRoundCards.length == widget.totalPlayers);
+    bool isLastCardOfTrick = (game.currentRoundCards.length >= widget.totalPlayers);
 
     int nextTurnIdx = (game.currentPlayerIndex + 1) % game.players.length;
     String nextTurnPlayerName = game.players[nextTurnIdx].name;
@@ -531,7 +529,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         "hands": handsSyncMap,
         "tableCards": List<int>.from(game.currentRoundCards),
         "tableOwners": List<String>.from(game.playedCardOwners),
-        if (!isLastCardOfTrick) "currentTurnPlayer": nextTurnPlayerName,
+        "currentTurnPlayer": nextTurnPlayerName,
       });
     }
 
@@ -543,6 +541,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
 
     if (isLastCardOfTrick) {
+      // 1.3 Seconds delay to ensure all players see cards rendered on table
       await Future.delayed(const Duration(milliseconds: 1300));
 
       game.evaluateRoundWinner();
@@ -556,7 +555,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         }
 
         String trickWinnerPlayerName = game.players[game.currentPlayerIndex].name;
-        bool allHandsEmpty = game.players.every((p) => p.hand.isEmpty);
         bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
 
         await _dbRef.child("rooms").child(widget.roomCode).update({
@@ -568,8 +566,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           "tableCards": [], 
           "tableOwners": [],
           "currentTurnPlayer": trickWinnerPlayerName,
-          "isBajiFinished": (allHandsEmpty && !isTargetHit),
-          if (allHandsEmpty && !isTargetHit) "cardsDealt": false,
+          "isBajiFinished": (game.isDeckFinished && !isTargetHit),
+          if (game.isDeckFinished && !isTargetHit) "cardsDealt": false,
         });
       }
     }
@@ -578,19 +576,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       setState(() {
         isProcessingTurn = false;
       });
-
-      if (widget.mode == GameMode.friend) {
-        bool allHandsEmpty = game.players.every((p) => p.hand.isEmpty);
-        if (allHandsEmpty && game.currentRoundCards.isEmpty) {
-          bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
-          if (!isTargetHit) {
-            setState(() {
-              game.isDeckFinished = true;
-            });
-            return;
-          }
-        }
-      }
 
       _checkAndPlayNextTurn();
     }
