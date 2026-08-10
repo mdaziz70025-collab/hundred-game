@@ -494,37 +494,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
 
     await Future.delayed(const Duration(milliseconds: 150));
-
     if (!mounted) return;
 
-    bool isLastCardOfTrick = (game.currentRoundCards.length == widget.totalPlayers - 1);
-
+    // 1. Play card locally
     game.playCard(cardValue);
 
-    // If last card of trick, wait 1 second so all players see full table cards
-    if (isLastCardOfTrick) {
-      if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
-        Map<String, List<int>> handsSyncMap = {};
-        Map<String, int> scoresSyncMap = {};
-        for (var player in game.players) {
-          handsSyncMap[player.name] = player.hand;
-          scoresSyncMap[player.name] = player.currentScore;
-        }
+    // FIX: Trick complete tab hota hai jab table par saare players (totalPlayers) ke cards aa jaate hain
+    bool isLastCardOfTrick = (game.currentRoundCards.length == widget.totalPlayers);
 
-        await _dbRef.child("rooms").child(widget.roomCode).update({
-          "hands": handsSyncMap,
-          "scores": scoresSyncMap,
-          "wins": game.playerWinsMap,
-          "targetScore": widget.targetScore,
-          "totalRoundsPlayed": game.totalRoundsPlayed,
-          "tableCards": List<int>.from(game.currentRoundCards),
-          "tableOwners": List<String>.from(game.playedCardOwners),
-        });
-      }
-
-      await Future.delayed(const Duration(milliseconds: 1000));
-    }
-
+    // 2. Teen Patti Architecture: Push ALL cards to Firebase FIRST
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
       Map<String, int> scoresSyncMap = {};
@@ -533,21 +511,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         scoresSyncMap[player.name] = player.currentScore;
       }
 
-      String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
-      bool allHandsEmpty = game.players.every((p) => p.hand.isEmpty);
-      bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
-
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "hands": handsSyncMap,
-        "scores": scoresSyncMap,
-        "wins": game.playerWinsMap,
-        "targetScore": widget.targetScore,
-        "totalRoundsPlayed": game.totalRoundsPlayed,
         "tableCards": List<int>.from(game.currentRoundCards),
         "tableOwners": List<String>.from(game.playedCardOwners),
-        "currentTurnPlayer": nextTurnPlayerName,
-        "isBajiFinished": (allHandsEmpty && !isTargetHit),
-        if (allHandsEmpty && !isTargetHit) "cardsDealt": false,
       });
     }
 
@@ -555,6 +522,55 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       setState(() {
         isCardFlying = false;
         flyingCardValue = null;
+      });
+    }
+
+    // 3. Handle Trick Completion / Delay Logic
+    if (isLastCardOfTrick) {
+      // 1.3 seconds delay for everyone to view table cards
+      await Future.delayed(const Duration(milliseconds: 1300));
+
+      // Evaluate winner and clear table locally
+      game.evaluateRoundWinner();
+
+      if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
+        Map<String, List<int>> handsSyncMap = {};
+        Map<String, int> scoresSyncMap = {};
+        for (var player in game.players) {
+          handsSyncMap[player.name] = player.hand;
+          scoresSyncMap[player.name] = player.currentScore;
+        }
+
+        String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
+        bool allHandsEmpty = game.players.every((p) => p.hand.isEmpty);
+        bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
+
+        await _dbRef.child("rooms").child(widget.roomCode).update({
+          "hands": handsSyncMap,
+          "scores": scoresSyncMap,
+          "wins": game.playerWinsMap,
+          "targetScore": widget.targetScore,
+          "totalRoundsPlayed": game.totalRoundsPlayed,
+          "tableCards": [], // Clear Table on Firebase after delay
+          "tableOwners": [],
+          "currentTurnPlayer": nextTurnPlayerName,
+          "isBajiFinished": (allHandsEmpty && !isTargetHit),
+          if (allHandsEmpty && !isTargetHit) "cardsDealt": false,
+        });
+      }
+    } else {
+      // Normal Middle Turns Sync
+      if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
+        String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
+
+        await _dbRef.child("rooms").child(widget.roomCode).update({
+          "currentTurnPlayer": nextTurnPlayerName,
+        });
+      }
+    }
+
+    if (mounted) {
+      setState(() {
         isProcessingTurn = false;
       });
 
