@@ -155,6 +155,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _listenToFirebaseRoom() {
     try {
+      _roomSubscription?.cancel();
       _roomSubscription = _dbRef.child("rooms").child(widget.roomCode).onValue.listen((event) {
         if (!event.snapshot.exists || event.snapshot.value == null) return;
 
@@ -185,9 +186,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           List<int> tableCards = List<int>.from(roomData['tableCards'] ?? []);
           List<String> tableOwners = List<String>.from(roomData['tableOwners'] ?? []);
 
-          if (tableCards.isEmpty) {
-            isProcessingTurn = false;
-            isCardFlying = false;
+          if (tableCards.isEmpty && mounted) {
+            setState(() {
+              isProcessingTurn = false;
+              isCardFlying = false;
+            });
           }
 
           if (firebaseDealtStatus && roomData['hands'] != null) {
