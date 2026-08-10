@@ -355,11 +355,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     game.dealNewDeck();
 
+    int cardsPerPlayer = (widget.totalPlayers == 2) ? 10 : (widget.totalPlayers == 3 ? 6 : 5);
+
+    // 1. Play animation locally first on dealer screen
+    for (int c = 0; c < cardsPerPlayer; c++) {
+      for (int p = 0; p < widget.totalPlayers; p++) {
+        if (!mounted) return;
+        setState(() {
+          currentlyDealingPlayerIndex = p;
+          currentDealingCardIndex++;
+        });
+        _playSoundEffect();
+        await Future.delayed(const Duration(milliseconds: 120));
+      }
+    }
+
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    // 2. Sync to Firebase ONLY AFTER animation finishes
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
       Map<String, int> scoresSyncMap = {};
       for (var player in game.players) {
-        handsSyncMap[player.name] = player.hand;
+        handsSyncMap[player.name] = List<int>.from(player.hand);
         scoresSyncMap[player.name] = player.currentScore;
       }
 
@@ -379,21 +397,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       });
     }
 
-    int cardsPerPlayer = (widget.totalPlayers == 2) ? 10 : (widget.totalPlayers == 3 ? 6 : 5);
-
-    for (int c = 0; c < cardsPerPlayer; c++) {
-      for (int p = 0; p < widget.totalPlayers; p++) {
-        if (!mounted) return;
-        setState(() {
-          currentlyDealingPlayerIndex = p;
-          currentDealingCardIndex++;
-        });
-        _playSoundEffect();
-        await Future.delayed(const Duration(milliseconds: 120));
-      }
-    }
-
-    await Future.delayed(const Duration(milliseconds: 200));
     if (mounted) {
       _playHeavySoundEffect();
       setState(() {
@@ -521,7 +524,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       Map<String, List<int>> handsSyncMap = {};
       Map<String, int> scoresSyncMap = {};
       for (var player in game.players) {
-        handsSyncMap[player.name] = player.hand;
+        handsSyncMap[player.name] = List<int>.from(player.hand);
         scoresSyncMap[player.name] = player.currentScore;
       }
 
@@ -549,7 +552,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         Map<String, List<int>> handsSyncMap = {};
         Map<String, int> scoresSyncMap = {};
         for (var player in game.players) {
-          handsSyncMap[player.name] = player.hand;
+          handsSyncMap[player.name] = List<int>.from(player.hand);
           scoresSyncMap[player.name] = player.currentScore;
         }
 
@@ -1011,216 +1014,4 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                         child: const Center(child: Text("🌸", style: TextStyle(fontSize: 16))),
                                       ),
                                       const SizedBox(height: 6),
-                                      Text("Card #$currentDealingCardIndex", style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                                    ],
-                                  )
-                                : Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Wrap(
-                                        spacing: 4,
-                                        runSpacing: 4,
-                                        alignment: WrapAlignment.center,
-                                        children: [
-                                          ...List.generate(game.currentRoundCards.length, (index) {
-                                            int cardVal = game.currentRoundCards[index];
-                                            return Column(
-                                              children: [
-                                                _buildPlayingCard(value: cardVal),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  index < game.playedCardOwners.length ? game.playedCardOwners[index] : "",
-                                                  style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                                                ),
-                                              ],
-                                            );
-                                          }),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                      ),
-                    ),
-                    if (game.players.length >= 2)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6.0),
-                        child: Column(
-                          children: [
-                            _buildPlayerLabel(game.players[rightIdx], rightIdx, isRotated: true, quarterTurns: 3),
-                            const SizedBox(height: 6),
-                            _buildPlayerHandView(rightIdx, isVertical: true),
-                          ],
-                        ),
-                      )
-                    else
-                      const SizedBox(width: 40),
-                  ],
-                ),
-                const SizedBox(height: 25),
-                _buildPlayerLabel(game.players[bottomIdx], bottomIdx),
-                const SizedBox(height: 8),
-                _buildPlayerHandView(bottomIdx),
-                const Spacer(),
-                if (game.warningMsg.isNotEmpty)
-                  Container(
-                    color: Colors.redAccent,
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-                    child: Text(game.warningMsg, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-
-                if (_isBannerAdLoaded && _bannerAd != null)
-                  Container(
-                    alignment: Alignment.center,
-                    width: _bannerAd!.size.width.toDouble(),
-                    height: _bannerAd!.size.height.toDouble(),
-                    margin: const EdgeInsets.only(bottom: 4.0),
-                    child: AdWidget(ad: _bannerAd!),
-                  ),
-              ],
-            ),
-            if (widget.mode != GameMode.offline && game.showFirstTurnDialog)
-              Container(
-                color: Colors.black54,
-                child: AlertDialog(
-                  title: const Text("Lowest Card Rule"),
-                  content: Text(game.firstTurnNotice),
-                  actions: [
-                    ElevatedButton(
-                      child: const Text("Start Turn"),
-                      onPressed: () {
-                        setState(() => game.showFirstTurnDialog = false);
-                        _checkAndPlayNextTurn();
-                      },
-                    )
-                  ],
-                ),
-              ),
-            if (game.isDeckFinished && game.winnerName.isEmpty && !isCardFlying)
-              Container(
-                color: Colors.black87,
-                width: double.infinity,
-                height: double.infinity,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("🃏 Baji Khatam! 🃏", style: TextStyle(color: Colors.amber, fontSize: 24, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 15),
-                    Text("Target score (${game.targetScore}) abhi tak kisi ne hit nahi kiya.", style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                    const SizedBox(height: 25),
-                    if (_canCurrentPlayerDeal || widget.isHost)
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                        ),
-                        icon: const Icon(Icons.style, color: Colors.white),
-                        label: const Text("AGLI BAJI DEAL KAREIN", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                        onPressed: () async {
-                          if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
-                            DataSnapshot snap = await _dbRef.child("rooms").child(widget.roomCode).get();
-                            int currentDealer = 0;
-                            int totalP = game.players.length;
-
-                            if (snap.exists && snap.value != null) {
-                              Map data = Map<dynamic, dynamic>.from(snap.value as Map);
-                              currentDealer = data['currentDealerIndex'] ?? 0;
-                            }
-
-                            int nextDealer = (currentDealer + 1) % (totalP > 0 ? totalP : 1);
-
-                            await _dbRef.child("rooms").child(widget.roomCode).update({
-                              "currentDealerIndex": nextDealer,
-                              "cardsDealt": false,
-                              "isBajiFinished": false,
-                              "tableCards": [],
-                              "tableOwners": [],
-                            });
-                          }
-                          setState(() {
-                            game.dealNewDeck();
-                            cardsDealt = false;
-                          });
-                        },
-                      )
-                    else
-                      Column(
-                        children: [
-                          const CircularProgressIndicator(color: Colors.amber),
-                          const SizedBox(height: 15),
-                          Text(
-                            "Waiting for $dealerDisplayName to Deal Cards...",
-                            style: const TextStyle(color: Colors.amberAccent, fontSize: 15, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            if (widget.mode == GameMode.offline && game.isCardHiddenForPass && game.winnerName.isEmpty && !game.isDeckFinished && !isCardFlying)
-              Container(
-                color: Colors.black87,
-                width: double.infinity,
-                height: double.infinity,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (game.lastRoundWinnerMsg.isNotEmpty) ...[
-                      Text(game.lastRoundWinnerMsg, style: const TextStyle(color: Colors.amber, fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                      const SizedBox(height: 25),
-                    ],
-                    const Text("Pass Phone to:", style: TextStyle(color: Colors.white70, fontSize: 16)),
-                    const SizedBox(height: 6),
-                    Text("Turn: ${activePlayer.name}", textAlign: TextAlign.center, style: const TextStyle(color: Colors.amberAccent, fontSize: 28, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 30),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      ),
-                      child: const Text("NEXT TURN / CONTINUE", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
-                      onPressed: () => setState(() {
-                        game.isCardHiddenForPass = false;
-                        game.lastRoundWinnerMsg = "";
-                        _checkAndPlayNextTurn();
-                      }),
-                    )
-                  ],
-                ),
-              ),
-            if (game.winnerName.isNotEmpty && !isCardFlying)
-              Container(
-                color: Colors.black87,
-                width: double.infinity,
-                height: double.infinity,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("🎆 👑 🎆", style: TextStyle(fontSize: 40)),
-                    const SizedBox(height: 10),
-                    Text("🎉 ${game.winnerName} WINS THE MATCH! 🎉", style: const TextStyle(color: Colors.yellow, fontSize: 26, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                    const SizedBox(height: 10),
-                    const Text("Congratulations! Champion of 100 Card Game!", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    const SizedBox(height: 30),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                      ),
-                      child: const Text("BACK TO MENU", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      onPressed: () {
-                        _showInterstitialAd(onAdDismissed: () {
-                          Navigator.pop(context);
-                        });
-                      },
-                    )
-                  ],
-                ),
-              )
-          ],
-        ),
-      ),
-    );
-  }
-}
+                                      Text("Card #$currentDealingCardIndex", style: const TextStyle(color: Colors.white
