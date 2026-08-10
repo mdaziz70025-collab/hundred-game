@@ -70,7 +70,6 @@ class HundredGameLogic {
 
     List<int> deck = List.generate(20, (i) => (i + 1) * 5);
 
-    // 3 Players Rule: Remove 5 and 10 cards (18 cards remaining)
     if (totalPlayers == 3) {
       deck.remove(5);
       deck.remove(10);
@@ -122,7 +121,6 @@ class HundredGameLogic {
 
     if (!current.hand.contains(cardValue)) return;
 
-    // Lowest Card First Rule Check
     if (isFirstRound) {
       if (current.hand.contains(5) && cardValue != 5) {
         warningMsg = "Pehle 5 number card hi chalna hoga!";
@@ -134,7 +132,6 @@ class HundredGameLogic {
       }
     }
 
-    // Must Play Higher Card Rule Check
     if (currentRoundCards.isNotEmpty) {
       int highestOnTable = currentRoundCards.reduce(max);
       bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
@@ -149,10 +146,12 @@ class HundredGameLogic {
     currentRoundCards.add(cardValue);
     playedCardOwners.add(current.name);
 
-    if (currentRoundCards.length < totalPlayers) {
-      currentPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
-      if (mode == GameMode.offline) {
+    if (mode == GameMode.offline) {
+      if (currentRoundCards.length < totalPlayers) {
+        currentPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
         isCardHiddenForPass = true;
+      } else {
+        evaluateRoundWinner();
       }
     }
   }
@@ -168,7 +167,7 @@ class HundredGameLogic {
       if (currentRoundCards[i] > highestCard) {
         highestCard = currentRoundCards[i];
         String ownerName = playedCardOwners[i];
-        winningCardOwnerIndex = players.indexWhere((p) => p.name == ownerName);
+        winningCardOwnerIndex = players.indexWhere((p) => p.name.trim().toLowerCase() == ownerName.trim().toLowerCase());
       }
     }
 
@@ -191,7 +190,6 @@ class HundredGameLogic {
 
       lastRoundWinnerMsg = "🎉 $winnerNameStr won Baji #${totalRoundsPlayed} (+${roundPoints} pts)!";
 
-      // Target Score Check
       if (players[winningCardOwnerIndex].currentScore >= targetScore) {
         winnerName = winnerNameStr;
       }
@@ -207,10 +205,8 @@ class HundredGameLogic {
 
     if (allHandsEmpty) {
       if (winnerName.isNotEmpty) {
-        // Target Score Hit -> Game Completely Over
         isDeckFinished = false;
       } else {
-        // Target Score NOT Hit -> Baji Khatam, Show Next Deal Option
         isDeckFinished = true;
       }
     } else if (mode == GameMode.offline) {
