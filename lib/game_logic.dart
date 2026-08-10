@@ -154,12 +154,12 @@ class HundredGameLogic {
       if (mode == GameMode.offline) {
         isCardHiddenForPass = true;
       }
-    } else {
-      evaluateRoundWinner();
     }
   }
 
   void evaluateRoundWinner() {
+    if (currentRoundCards.isEmpty) return;
+
     totalRoundsPlayed++;
     int highestCard = -1;
     int winningCardOwnerIndex = -1;
