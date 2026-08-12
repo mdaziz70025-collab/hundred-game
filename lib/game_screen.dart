@@ -490,10 +490,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     await Future.delayed(const Duration(milliseconds: 150));
     if (!mounted) return;
 
-    // Call game engine method so that turn and trick counters update properly
+    int cardsBeforePlay = game.currentRoundCards.length;
     game.playCard(cardValue);
+    int cardsAfterPlay = game.currentRoundCards.length;
 
-    bool isLastCardOfTrick = (game.currentRoundCards.isEmpty); // Reset after evaluation
+    bool isTrickEvaluated = (cardsBeforePlay == widget.totalPlayers - 1) && (cardsAfterPlay == 0);
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
@@ -506,6 +507,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
       bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
 
+      // Force Baji Finish if deck is finished!
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "hands": handsSyncMap,
         "scores": scoresSyncMap,
@@ -527,7 +529,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         isProcessingTurn = false;
       });
 
-      _checkAndPlayNextTurn();
+      if (!game.isDeckFinished) {
+        _checkAndPlayNextTurn();
+      }
     }
   }
 
