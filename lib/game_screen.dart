@@ -239,6 +239,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               game.totalRoundsPlayed = int.tryParse(roomData['totalRoundsPlayed'].toString()) ?? 0;
             }
 
+            if (roomData['currentTrickInDeck'] != null) {
+              game.currentTrickInDeck = int.tryParse(roomData['currentTrickInDeck'].toString()) ?? 0;
+            }
+
             game.currentRoundCards = tableCards;
             game.playedCardOwners = tableOwners;
 
@@ -389,6 +393,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         "scores": scoresSyncMap,
         "wins": game.playerWinsMap,
         "totalRoundsPlayed": game.totalRoundsPlayed,
+        "currentTrickInDeck": 0,
         "tableCards": [],
         "tableOwners": [],
         "currentTurnPlayer": firstTurnPlayerName,
@@ -473,30 +478,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return;
     if (widget.mode == GameMode.friend && !_isMyTurn) return;
 
-    Player current = game.players[game.currentPlayerIndex];
-
-    if (!current.hand.contains(cardValue)) return;
-
-    if (game.isFirstRound) {
-      if (current.hand.contains(5) && cardValue != 5) {
-        setState(() => game.warningMsg = "Pehle 5 number card hi chalna hoga!");
-        return;
-      }
-      if (widget.totalPlayers == 3 && cardValue != 15 && current.hand.contains(15)) {
-        setState(() => game.warningMsg = "Pehle 15 number card hi chalna hoga!");
-        return;
-      }
-    }
-
-    if (game.currentRoundCards.isNotEmpty) {
-      int highestOnTable = game.currentRoundCards.reduce(max);
-      bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
-      if (hasHigherCard && cardValue < highestOnTable) {
-        setState(() => game.warningMsg = "Aapke paas $highestOnTable se bada card hai, chhota nahi chal sakte!");
-        return;
-      }
-    }
-
     _playSoundEffect();
 
     setState(() {
@@ -509,14 +490,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     await Future.delayed(const Duration(milliseconds: 150));
     if (!mounted) return;
 
-    current.hand.remove(cardValue);
-    game.currentRoundCards.add(cardValue);
-    game.playedCardOwners.add(current.name);
+    // Call game engine method so that turn and trick counters update properly
+    game.playCard(cardValue);
 
-    bool isLastCardOfTrick = (game.currentRoundCards.length >= widget.totalPlayers);
-
-    int nextTurnIdx = (game.currentPlayerIndex + 1) % game.players.length;
-    String nextTurnPlayerName = game.players[nextTurnIdx].name;
+    bool isLastCardOfTrick = (game.currentRoundCards.isEmpty); // Reset after evaluation
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
@@ -526,11 +503,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         scoresSyncMap[player.name] = player.currentScore;
       }
 
+      String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
+      bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
+
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "hands": handsSyncMap,
+        "scores": scoresSyncMap,
+        "wins": game.playerWinsMap,
+        "totalRoundsPlayed": game.totalRoundsPlayed,
+        "currentTrickInDeck": game.currentTrickInDeck,
         "tableCards": List<int>.from(game.currentRoundCards),
         "tableOwners": List<String>.from(game.playedCardOwners),
         "currentTurnPlayer": nextTurnPlayerName,
+        "isBajiFinished": (game.isDeckFinished && !isTargetHit),
+        if (game.isDeckFinished && !isTargetHit) "cardsDealt": false,
       });
     }
 
@@ -538,42 +524,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       setState(() {
         isCardFlying = false;
         flyingCardValue = null;
-      });
-    }
-
-    if (isLastCardOfTrick) {
-      await Future.delayed(const Duration(milliseconds: 1300));
-
-      game.evaluateRoundWinner();
-
-      if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
-        Map<String, List<int>> handsSyncMap = {};
-        Map<String, int> scoresSyncMap = {};
-        for (var player in game.players) {
-          handsSyncMap[player.name] = List<int>.from(player.hand);
-          scoresSyncMap[player.name] = player.currentScore;
-        }
-
-        String trickWinnerPlayerName = game.players[game.currentPlayerIndex].name;
-        bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
-
-        await _dbRef.child("rooms").child(widget.roomCode).update({
-          "hands": handsSyncMap,
-          "scores": scoresSyncMap,
-          "wins": game.playerWinsMap,
-          "targetScore": widget.targetScore,
-          "totalRoundsPlayed": game.totalRoundsPlayed,
-          "tableCards": [], 
-          "tableOwners": [],
-          "currentTurnPlayer": trickWinnerPlayerName,
-          "isBajiFinished": (game.isDeckFinished && !isTargetHit),
-          if (game.isDeckFinished && !isTargetHit) "cardsDealt": false,
-        });
-      }
-    }
-
-    if (mounted) {
-      setState(() {
         isProcessingTurn = false;
       });
 
