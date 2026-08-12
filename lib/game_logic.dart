@@ -208,11 +208,12 @@ class HundredGameLogic {
     int maxTricksInDeck = (totalPlayers == 2) ? 10 : (totalPlayers == 3 ? 6 : 5);
     bool allHandsEmpty = players.every((p) => p.hand.isEmpty);
 
+    // STRICT HARD STOP
     if (currentTrickInDeck >= maxTricksInDeck || allHandsEmpty) {
       if (winnerName.isNotEmpty) {
         isDeckFinished = false;
       } else {
-        isDeckFinished = true;
+        isDeckFinished = true; // Trigger Baji Khatam Overlay
       }
     } else if (mode == GameMode.offline) {
       isCardHiddenForPass = true;
