@@ -24,7 +24,7 @@ class HundredGameLogic {
   int currentPlayerIndex = 0;
 
   int totalRoundsPlayed = 0;
-  int currentTrickInDeck = 0; // Tracks tricks played only in the active baji/deck
+  int currentTrickInDeck = 0;
   Map<String, int> playerWinsMap = {};
   List<RoundHistory> roundHistoryList = [];
 
@@ -66,7 +66,7 @@ class HundredGameLogic {
     isDeckFinished = false;
     isFirstRound = true;
     showFirstTurnDialog = false;
-    currentTrickInDeck = 0; // Reset deck counter
+    currentTrickInDeck = 0;
     currentRoundCards.clear();
     playedCardOwners.clear();
 
@@ -109,7 +109,7 @@ class HundredGameLogic {
     }
 
     currentPlayerIndex = startingIndex;
-    firstTurnNotice = "${players[startingIndex].name} ke paas$lowestCard number card gaya hai! Pehla turn inka hai.";
+    firstTurnNotice = "${players[startingIndex].name} ke paas $lowestCard number card gaya hai! Pehla turn inka hai.";
   }
 
   void revealFirstTurnDialog() {
@@ -148,12 +148,12 @@ class HundredGameLogic {
     currentRoundCards.add(cardValue);
     playedCardOwners.add(current.name);
 
-    if (mode == GameMode.offline) {
-      if (currentRoundCards.length < totalPlayers) {
-        currentPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
+    if (currentRoundCards.length == totalPlayers) {
+      evaluateRoundWinner();
+    } else {
+      currentPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
+      if (mode == GameMode.offline) {
         isCardHiddenForPass = true;
-      } else {
-        evaluateRoundWinner();
       }
     }
   }
@@ -205,18 +205,14 @@ class HundredGameLogic {
     currentRoundCards.clear();
     playedCardOwners.clear();
 
-    // STRICT RULES ACCORDING TO PLAYER COUNT:
-    // 2 Players -> 10 tricks
-    // 3 Players -> 6 tricks
-    // 4 Players -> 5 tricks
     int maxTricksInDeck = (totalPlayers == 2) ? 10 : (totalPlayers == 3 ? 6 : 5);
     bool allHandsEmpty = players.every((p) => p.hand.isEmpty);
 
     if (currentTrickInDeck >= maxTricksInDeck || allHandsEmpty) {
       if (winnerName.isNotEmpty) {
-        isDeckFinished = false; // Trigger Game Winner Screen
+        isDeckFinished = false;
       } else {
-        isDeckFinished = true;  // Trigger Agli Baji Deal Screen
+        isDeckFinished = true;
       }
     } else if (mode == GameMode.offline) {
       isCardHiddenForPass = true;
