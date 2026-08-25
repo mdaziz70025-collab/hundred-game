@@ -339,6 +339,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   bool get _isMyTurn {
+    if (widget.mode == GameMode.computer) {
+      return game.currentPlayerIndex == 0; // In Computer mode, Player 0 is human user
+    }
     if (widget.mode != GameMode.friend) return true;
     if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return false;
     
@@ -375,6 +378,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     await Future.delayed(const Duration(milliseconds: 200));
 
+    // Firebase Sync happens ONLY AFTER deal animation completes
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
       Map<String, int> scoresSyncMap = {};
@@ -414,24 +418,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         }
       });
 
-      if (widget.mode != GameMode.offline) {
+      if (widget.mode == GameMode.computer) {
         _checkAndPlayNextTurn();
       }
     }
   }
 
   void _checkAndPlayNextTurn() async {
+    // Friend mode handles turns via real human taps
     if (widget.mode == GameMode.friend) return;
 
     if (isDealing || game.isDeckFinished || game.winnerName.isNotEmpty) return;
     if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return;
 
     Player current = game.players[game.currentPlayerIndex];
-
     if (current.hand.isEmpty) return;
 
+    // Trigger AI Bot Turn automatically
     if (current.name.toLowerCase().contains("bot") || current.name.toLowerCase().contains("computer")) {
-      await Future.delayed(const Duration(milliseconds: 700));
+      await Future.delayed(const Duration(milliseconds: 600));
       if (!mounted) return;
 
       List<int> playableCards = [];
@@ -478,6 +483,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return;
     if (widget.mode == GameMode.friend && !_isMyTurn) return;
 
+    Player current = game.players[game.currentPlayerIndex];
+    if (!current.hand.contains(cardValue)) return;
+
+    if (game.isFirstRound) {
+      if (current.hand.contains(5) && cardValue != 5) {
+        setState(() => game.warningMsg = "Pehle 5 number card hi chalna hoga!");
+        return;
+      }
+      if (widget.totalPlayers == 3 && cardValue != 15 && current.hand.contains(15)) {
+        setState(() => game.warningMsg = "Pehle 15 number card hi chalna hoga!");
+        return;
+      }
+    }
+
+    if (game.currentRoundCards.isNotEmpty) {
+      int highestOnTable = game.currentRoundCards.reduce(max);
+      bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
+      if (hasHigherCard && cardValue < highestOnTable) {
+        setState(() => game.warningMsg = "Aapke paas $highestOnTable se bada card hai, chhota nahi chal sakte!");
+        return;
+      }
+    }
+
     _playSoundEffect();
 
     setState(() {
@@ -490,11 +518,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     await Future.delayed(const Duration(milliseconds: 150));
     if (!mounted) return;
 
-    int cardsBeforePlay = game.currentRoundCards.length;
     game.playCard(cardValue);
-    int cardsAfterPlay = game.currentRoundCards.length;
-
-    bool isTrickEvaluated = (cardsBeforePlay == widget.totalPlayers - 1) && (cardsAfterPlay == 0);
 
     if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
       Map<String, List<int>> handsSyncMap = {};
@@ -507,7 +531,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       String nextTurnPlayerName = game.players[game.currentPlayerIndex].name;
       bool isTargetHit = game.players.any((p) => p.currentScore >= game.targetScore);
 
-      // Force Baji Finish if deck is finished!
       await _dbRef.child("rooms").child(widget.roomCode).update({
         "hands": handsSyncMap,
         "scores": scoresSyncMap,
@@ -739,11 +762,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     bool isMyDevicePlayer = (widget.mode == GameMode.friend)
         ? (p.name.trim().toLowerCase() == widget.myPlayerName.trim().toLowerCase())
-        : (realIndex == 0);
+        : (widget.mode == GameMode.computer ? realIndex == 0 : realIndex == 0);
 
     List<int> displayHand = List.from(p.hand);
 
-    if (widget.mode == GameMode.friend) {
+    if (widget.mode == GameMode.friend || widget.mode == GameMode.computer) {
       if (isMyDevicePlayer) {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -1072,6 +1095,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         icon: const Icon(Icons.style, color: Colors.white),
                         label: const Text("AGLI BAJI DEAL KAREIN", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
                         onPressed: () async {
+                          // FIX: Next dealer update karke seedha _startDealingAnimation() call karo jo sync bhi handle karega
                           if (widget.mode == GameMode.friend && widget.roomCode.isNotEmpty) {
                             DataSnapshot snap = await _dbRef.child("rooms").child(widget.roomCode).get();
                             int currentDealer = 0;
@@ -1092,10 +1116,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                               "tableOwners": [],
                             });
                           }
-                          setState(() {
-                            game.dealNewDeck();
-                            cardsDealt = false;
-                          });
+                          _startDealingAnimation();
                         },
                       )
                     else
