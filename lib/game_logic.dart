@@ -24,7 +24,7 @@ class HundredGameLogic {
   int currentPlayerIndex = 0;
 
   int totalRoundsPlayed = 0;
-  int currentTrickInDeck = 0; // Current Deck / Baji tricks count
+  int currentTrickInDeck = 0;
   Map<String, int> playerWinsMap = {};
   List<RoundHistory> roundHistoryList = [];
 
@@ -158,7 +158,6 @@ class HundredGameLogic {
       evaluateRoundWinner();
     } else {
       currentPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
-      // FIX: Sirf tab pass screen dikhayen jab Pass & Play offline mode ho aur agla player Bot NA ho
       if (mode == GameMode.offline && !_isPlayerBot(currentPlayerIndex)) {
         isCardHiddenForPass = true;
       } else {
@@ -219,9 +218,9 @@ class HundredGameLogic {
 
     if (currentTrickInDeck >= maxTricksInDeck || allHandsEmpty) {
       if (winnerName.isNotEmpty) {
-        isDeckFinished = false; // Game Finished Screen
+        isDeckFinished = false;
       } else {
-        isDeckFinished = true;  // Agli Baji Screen
+        isDeckFinished = true;
       }
       isCardHiddenForPass = false;
     } else if (mode == GameMode.offline && !_isPlayerBot(currentPlayerIndex)) {
