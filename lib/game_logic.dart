@@ -24,7 +24,7 @@ class HundredGameLogic {
   int currentPlayerIndex = 0;
 
   int totalRoundsPlayed = 0;
-  int currentTrickInDeck = 0;
+  int currentTrickInDeck = 0; // Current Deck / Baji tricks count
   Map<String, int> playerWinsMap = {};
   List<RoundHistory> roundHistoryList = [];
 
@@ -116,6 +116,12 @@ class HundredGameLogic {
     showFirstTurnDialog = true;
   }
 
+  bool _isPlayerBot(int index) {
+    if (index < 0 || index >= players.length) return false;
+    String name = players[index].name.toLowerCase();
+    return name.contains("bot") || name.contains("computer");
+  }
+
   void playCard(int cardValue) {
     warningMsg = "";
     if (players.isEmpty || currentPlayerIndex >= players.length) return;
@@ -152,8 +158,11 @@ class HundredGameLogic {
       evaluateRoundWinner();
     } else {
       currentPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
-      if (mode == GameMode.offline) {
+      // FIX: Sirf tab pass screen dikhayen jab Pass & Play offline mode ho aur agla player Bot NA ho
+      if (mode == GameMode.offline && !_isPlayerBot(currentPlayerIndex)) {
         isCardHiddenForPass = true;
+      } else {
+        isCardHiddenForPass = false;
       }
     }
   }
@@ -208,15 +217,17 @@ class HundredGameLogic {
     int maxTricksInDeck = (totalPlayers == 2) ? 10 : (totalPlayers == 3 ? 6 : 5);
     bool allHandsEmpty = players.every((p) => p.hand.isEmpty);
 
-    // STRICT HARD STOP
     if (currentTrickInDeck >= maxTricksInDeck || allHandsEmpty) {
       if (winnerName.isNotEmpty) {
-        isDeckFinished = false;
+        isDeckFinished = false; // Game Finished Screen
       } else {
-        isDeckFinished = true; // Trigger Baji Khatam Overlay
+        isDeckFinished = true;  // Agli Baji Screen
       }
-    } else if (mode == GameMode.offline) {
+      isCardHiddenForPass = false;
+    } else if (mode == GameMode.offline && !_isPlayerBot(currentPlayerIndex)) {
       isCardHiddenForPass = true;
+    } else {
+      isCardHiddenForPass = false;
     }
   }
 }
