@@ -339,10 +339,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   bool get _isMyTurn {
-    if (widget.mode == GameMode.computer) {
-      return game.currentPlayerIndex == 0;
+    if (widget.mode != GameMode.friend) {
+      // In offline/computer mode, return true for Human user (Player 0 / non-bot)
+      return !game.players[game.currentPlayerIndex].name.toLowerCase().contains("bot") &&
+             !game.players[game.currentPlayerIndex].name.toLowerCase().contains("computer");
     }
-    if (widget.mode != GameMode.friend) return true;
     if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return false;
     
     String activeTurnPlayer = game.players[game.currentPlayerIndex].name.trim().toLowerCase();
@@ -417,7 +418,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         }
       });
 
-      if (widget.mode == GameMode.computer) {
+      if (widget.mode != GameMode.friend) {
         _checkAndPlayNextTurn();
       }
     }
@@ -479,6 +480,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (isProcessingTurn || isCardFlying) return;
     if (game.players.isEmpty || game.currentPlayerIndex >= game.players.length) return;
     if (widget.mode == GameMode.friend && !_isMyTurn) return;
+
+    Player current = game.players[game.currentPlayerIndex];
+    if (!current.hand.contains(cardValue)) return;
+
+    if (game.isFirstRound) {
+      if (current.hand.contains(5) && cardValue != 5) {
+        setState(() => game.warningMsg = "Pehle 5 number card hi chalna hoga!");
+        return;
+      }
+      if (widget.totalPlayers == 3 && cardValue != 15 && current.hand.contains(15)) {
+        setState(() => game.warningMsg = "Pehle 15 number card hi chalna hoga!");
+        return;
+      }
+    }
+
+    if (game.currentRoundCards.isNotEmpty) {
+      int highestOnTable = game.currentRoundCards.reduce(max);
+      bool hasHigherCard = current.hand.any((c) => c > highestOnTable);
+      if (hasHigherCard && cardValue < highestOnTable) {
+        setState(() => game.warningMsg = "Aapke paas $highestOnTable se bada card hai, chhota nahi chal sakte!");
+        return;
+      }
+    }
 
     _playSoundEffect();
 
@@ -736,11 +760,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     bool isMyDevicePlayer = (widget.mode == GameMode.friend)
         ? (p.name.trim().toLowerCase() == widget.myPlayerName.trim().toLowerCase())
-        : (widget.mode == GameMode.computer ? realIndex == 0 : realIndex == 0);
+        : (realIndex == 0);
 
     List<int> displayHand = List.from(p.hand);
 
-    if (widget.mode == GameMode.friend || widget.mode == GameMode.computer) {
+    if (widget.mode == GameMode.friend) {
       if (isMyDevicePlayer) {
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
