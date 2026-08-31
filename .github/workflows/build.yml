@@ -48,7 +48,7 @@ jobs:
           cd ${{ env.PROJECT_DIR }}
           flutter pub get
           dart run flutter_launcher_icons || true
-          flutter build apk --release
+          flutter build apk --release --android-skip-build-dependency-validation
         env:
           KEYSTORE_PATH: "release.jks"
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
